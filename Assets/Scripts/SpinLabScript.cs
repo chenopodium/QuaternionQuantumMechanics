@@ -38,6 +38,7 @@ public class SpinLabScript : MonoBehaviour
     public GameObject spherePrefab;
     public GameObject otherSphere;
 
+    private bool started;
 
 
     private float bigRadius = 5f;
@@ -216,13 +217,22 @@ public class SpinLabScript : MonoBehaviour
       
     }
     private void Awake() {
-        p("***** Awake dirction "+direction+"  *****");
+        p("***** Awake dirction " + direction + "  ***** frame " + Time.frameCount);
+        
+        StartCoroutine(ReallyAwake());
+    }
+     private System.Collections.IEnumerator ReallyAwake() {
+        p("***** ReallyAwake direction " + direction+"  ***** frame "+Time.frameCount+", manager is "+ GameObject.FindObjectOfType<GameManager>());
+        if (GameObject.FindObjectOfType<GameManager>() == null) yield return null;
+     //   yield return new WaitUntil(() => GameObject.FindObjectOfType<GameManager>()!=null);
+        _manager = GameObject.FindObjectOfType<GameManager>();
+        p("GameManager is now " + _manager);
         TMPro.TMP_Text help = GameObject.Find("HelpDesc").GetComponent<TMPro.TMP_Text>();
         canvas = GameObject.FindGameObjectWithTag("Canvas");
         
         if (help != null) help.enabled = false;
         //The following line should work if you stick to having one GameManager in the game
-        _manager = GameObject.FindObjectOfType<GameManager>();
+       
         _manager.addListener((a) => {
             if (a.Equals("togglegroup")) {
                 refresh("bla");
@@ -280,7 +290,7 @@ public class SpinLabScript : MonoBehaviour
         Slider pslider = GameObject.FindGameObjectWithTag("ParticleInfluence").GetComponent<Slider>();
         pslider.value = _manager.particleInfluence;
 
-        Slider gslider = GameObject.FindGameObjectWithTag("GridSize").GetComponent<Slider>();
+        Slider gslider = GameObject.Find("GridSize").GetComponent<Slider>();
         at = GameObject.Find("GridSizeLabel").GetComponent<Text>();
         gslider.value = _manager.gridSize;
         at.text = "Grid size " + _manager.gridSize;
@@ -307,7 +317,7 @@ public class SpinLabScript : MonoBehaviour
     }
     void Start() {
         p("******** Start **********");
-        
+        if (_manager == null) Awake();
         deltaRadius = bigRadius - smallRadius;
         rings = (int)(deltaRadius / distBetweenPoints);
         if (sequence == null) parseFormula(DEFAULT_FORMULA);
@@ -321,7 +331,7 @@ public class SpinLabScript : MonoBehaviour
             createSphericalLines();
         }
         checkVisibility();
-
+        started = true;
 
     }
 
@@ -809,7 +819,7 @@ public class SpinLabScript : MonoBehaviour
         Slider sslider = GameObject.FindGameObjectWithTag("SpeedSlider").GetComponent<Slider>();
         Slider xslider = GameObject.FindGameObjectWithTag("AxisSlider").GetComponent<Slider>();
 
-        Slider gslider = GameObject.FindGameObjectWithTag("GridSize").GetComponent<Slider>();
+        Slider gslider = GameObject.Find("GridSize").GetComponent<Slider>();
         InputField f = GameObject.FindGameObjectWithTag("FormulaField").GetComponent<InputField>();
         Slider pslider = GameObject.FindGameObjectWithTag("ParticleInfluence").GetComponent<Slider>();
 
