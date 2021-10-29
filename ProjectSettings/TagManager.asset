@@ -18,6 +18,7 @@ TagManager:
   - ToggleFlip
   - GridSize
   - ShowSphere
+  - HelpGroup
   layers:
   - Default
   - TransparentFX

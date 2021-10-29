@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CameraFly : MonoBehaviour
 {
@@ -8,7 +9,7 @@ public class CameraFly : MonoBehaviour
     Vector2 _smoothMouse;
 
     public Vector2 clampInDegrees = new Vector2(360, 180);
-    public Vector2 sensitivity = new Vector2(0.2f, 0.2f);
+    public Vector2 sensitivity = new Vector2(0.1f, 0.02f);
     public Vector2 smoothing = new Vector2(3, 3);
     public Vector2 targetDirection;
     public Vector2 targetCharacterDirection;
@@ -54,7 +55,15 @@ public class CameraFly : MonoBehaviour
 
 
     }
-
+    public GameObject Find(GameObject parent, string name) {
+        Transform[] trs = parent.GetComponentsInChildren<Transform>(true);
+        foreach (Transform t in trs) {
+            if (t.name == name) {
+                return t.gameObject;
+            }
+        }
+        return null;
+    }
     void Update() {
 
         if (modeFly) {
@@ -146,14 +155,18 @@ public class CameraFly : MonoBehaviour
             Application.Quit();
         }
         else if (Input.GetKey(KeyCode.H)) {
+            setModeFly(false);
             int delta = Time.frameCount- lastChange;
             if (delta > 10) {
-                TMPro.TMP_Text help = GameObject.Find("HelpDesc").GetComponent<TMPro.TMP_Text>();
-                if (help != null) help.enabled = !help.enabled;
-                else p("Could not find HelpDesc");
+                GameObject panel = Find(GameObject.FindGameObjectWithTag("Canvas"), "HelpGroup");
+                if (panel != null) {
+                    panel.SetActive(!panel.activeSelf);
+
+                }
+                else p("Coulld not find HelpGroup");
                 lastChange = Time.frameCount;
             }
-            setModeFly(false);
+           
 
         }
         else if (Input.GetKey(KeyCode.P)) {
@@ -169,10 +182,7 @@ public class CameraFly : MonoBehaviour
                   || Input.GetKey(KeyCode.F12) ||
             Input.GetKey(KeyCode.F2)) {
             setModeFly(false);
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-            transform.position = startingTransform.position;
-            transform.rotation = startingTransform.rotation;
+            
            
             p("User entered ESC or F1, F2 or X (mode fly =false)");
         }
@@ -182,6 +192,12 @@ public class CameraFly : MonoBehaviour
         modeFly = fly;
       
         p("mode fly "+fly);
+        if (fly == false) {
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+            transform.position = startingTransform.position;
+            transform.rotation = startingTransform.rotation;
+        }
 
         canvas.gameObject.SetActive( !modeFly);
     }
