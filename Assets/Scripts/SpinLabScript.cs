@@ -70,7 +70,7 @@ public class SpinLabScript : MonoBehaviour
     private GameObject canvas;
     void Update() {
 
-        float dBracketAngle = _manager.speed / 20.0f;
+        float dBracketAngle = _manager.speed / 5.0f;
         bool useCompression = _manager.useCompression;
         float bracketAngle = (float)Time.frameCount * dBracketAngle;
 
@@ -466,8 +466,8 @@ public class SpinLabScript : MonoBehaviour
     private void createGridPoints() {
 
         nrGridPointsPerAxis= new int[3];
-        int minGrid =- _manager.gridSize;
-        int maxGrid = _manager.gridSize;
+        int minGrid =- _manager.gridSize*2;
+        int maxGrid = _manager.gridSize*2;
         int dGrid = -minGrid + maxGrid;
         int n = (int)(dGrid / distBetweenPoints);
         this.nrGridPointsPerAxis[0] = n;
@@ -1058,6 +1058,7 @@ public class SpinLabScript : MonoBehaviour
     public void setSpinMode() {
         Text at = GameObject.Find("SpinLabel").GetComponent<Text>();
         Slider aslider = GameObject.FindGameObjectWithTag("SpinSlider").GetComponent<Slider>();
+        if (aslider == null) return;
         spinMode = (int)aslider.value;
         if (leftSide) _manager.spinMode = spinMode;
         restartMarkers();
@@ -1067,6 +1068,7 @@ public class SpinLabScript : MonoBehaviour
     public void setGridSize() {
         Text at = GameObject.Find("GridSizeLabel").GetComponent<Text>();
         Slider aslider = GameObject.FindGameObjectWithTag("GridSize").GetComponent<Slider>();
+        if (aslider == null) return;
         int gridSize = (int)aslider.value;
         if (leftSide) _manager.gridSize = gridSize;
        

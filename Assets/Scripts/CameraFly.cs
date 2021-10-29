@@ -8,7 +8,7 @@ public class CameraFly : MonoBehaviour
     Vector2 _smoothMouse;
 
     public Vector2 clampInDegrees = new Vector2(360, 180);
-    public Vector2 sensitivity = new Vector2(0.5f, 0.5f);
+    public Vector2 sensitivity = new Vector2(0.2f, 0.2f);
     public Vector2 smoothing = new Vector2(3, 3);
     public Vector2 targetDirection;
     public Vector2 targetCharacterDirection;

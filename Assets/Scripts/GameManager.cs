@@ -116,7 +116,7 @@ public class GameManager : MonoBehaviour
         showLines = true;
         showPoints = false;
         flipSecond = false;
-        gridSize = 6;
+        gridSize = 3;
         spinMode = 1;
         particleInfluence = 0.5f;
         useCompression = false;
