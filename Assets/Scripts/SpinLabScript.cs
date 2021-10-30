@@ -14,6 +14,8 @@ public class SpinLabScript : MonoBehaviour
     public Transform spheregroup;
     public MarkerPath markerScript;
 
+    public Texture m_MainTexture, m_Normal, m_Metal;
+
     private bool useGridLines = true;
     // ======================== PRIVATE ==========================
 
@@ -86,7 +88,7 @@ public class SpinLabScript : MonoBehaviour
 
         if (modeBracket == false) {
             // use sine function instead, throuh phase
-            // bracketAngle = 45;// bracketAngle * anglePhase;
+             bracketAngle = 45;// bracketAngle * anglePhase;
 
         }
         bool debug = false;// Time.frameCount % 100 == 0;
@@ -360,9 +362,13 @@ public class SpinLabScript : MonoBehaviour
         }
         char[] chars = formula.Trim().ToCharArray();
         sequence = new int[chars.Length];
-        if (chars.Length == 0 || chars[0] != '<' || chars[chars.Length - 1] != '>') {
+        if (chars.Length == 0 ) {
             //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
             return parseFormula(DEFAULT_FORMULA);
+        }
+        if (chars[0] != '<' && chars[chars.Length - 1] != '>') {
+            //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
+            modeBracket = false;
         }
         for (int i = 0; i < chars.Length; i++) {
             char c = chars[i];
@@ -615,7 +621,19 @@ public class SpinLabScript : MonoBehaviour
     public GameObject[,,] getPoints() {
         return points;
     }
+    private void setTexture(LineRenderer lr) {
 
+        //Make sure to enable the Keywords
+        lr.material.EnableKeyword("_NORMALMAP");
+        lr.material.EnableKeyword("_METALLICGLOSSMAP");
+        lr.SetWidth(3, 3);
+        //lr the Texture you assign in the Inspector as the main texture (Or Albedo)
+        lr.material.SetTexture("_MainTex", m_MainTexture);
+        //Set the Normal map using the Texture you assign in the Inspector
+        lr.material.SetTexture("_BumpMap", m_Normal);
+        //Set the Metallic Texture as a Texture you assign in the Inspector
+        lr.material.SetTexture("_MetallicGlossMap", m_Metal);
+    }
     private void createGridLines() {
         p("***** createGridLines for " + (_manager.nrAxis + 1) + " axis");
         //p("Points dimension: " + points.GetLength(0)+", "+points.GetLength(1)+", "+points.GetLength(2));
@@ -738,6 +756,7 @@ public class SpinLabScript : MonoBehaviour
             LineRenderer lr = addLine(color, a, b);
             if (lr != null) {
                 // remember line 
+              //  setTexture(lr);
                 lines[axis, x, y, z, which] = lr;
             }
             else warn("Could not create line ax " + axis + ", i, i,k=" + x + "/" + y + "/" + z + "-" + x2 + "/" + y2 + "/" + z2);
@@ -793,6 +812,21 @@ public class SpinLabScript : MonoBehaviour
 
         return lr;
     }
+    private Color getColorValue(float dist, float t) {
+        float r = 0.5f;
+        float g =0.5f;
+        float b = 0.5f;
+        float c = 0;
+        if (dist != 0) {
+            c = Mathf.Min(0.5f, 5.0f / (float)Mathf.Abs(dist));
+            if (dist > 0) {
+                r = r + c;
+
+            }
+            else b = b + c;
+        }
+        return new Color(r, g, b, t);
+    }
     private void checkColorOfLine(LineRenderer lr, int axis) {
         // in the right sphere, make half the line transparent
         // actually better would be to connect the line
@@ -812,12 +846,25 @@ public class SpinLabScript : MonoBehaviour
         float r = Mathf.Max(0, Mathf.Min(r1, r2) / _manager.particleInfluence - 2.0f);
         t = 1.0f / (1.0f + r * r);
 
-        Color c = Color.black;
-        if (axis == 0) c = new Color(1.0f, 1.0f, 1.0f, t);
-        else if (axis == 1) c = new Color(1.0f, 1.0f, 0.0f, t);
-        else c = new Color(1.0f, 0.5f, 0.0f, t);
-        lr.startColor = c;
-        lr.endColor = c;
+        Color ca = Color.black;
+        Color cb = Color.black;
+        if (axis == 0) {
+            // up: red 1, 0.5, 0.5
+            // down: blue, 0.5, 0.5, 1
+            ca = getColorValue(a.y, t);
+           // ca = new Color(1.0f, 1.0f, 1.0f, t);
+            cb = getColorValue(b.y, t);
+        }
+        else if (axis == 1) {
+            ca = new Color(1.0f, 1.0f, 0.0f, t);
+            cb = new Color(1.0f, 1.0f, 0.0f, t);
+        }
+        else {
+            ca = new Color(1.0f, 0.5f, 0.0f, t);
+            cb = new Color(1.0f, 0.5f, 0.0f, t);
+        }
+        lr.startColor = ca;
+        lr.endColor = cb;
         if (!leftSide) {
             // RIGHT side            
             lr.startColor = tra;

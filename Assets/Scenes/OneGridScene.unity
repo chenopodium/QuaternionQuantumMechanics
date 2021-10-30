@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 528363c5c1cf6a7458140c6851c77b68, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 135a7036ca1a07b4e9e162d80e6b6e77, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -551,6 +551,9 @@ MonoBehaviour:
   sphere: {fileID: 78925084}
   spheregroup: {fileID: 1912678445}
   markerScript: {fileID: 707866049}
+  m_MainTexture: {fileID: 0}
+  m_Normal: {fileID: 0}
+  m_Metal: {fileID: 0}
   pointPrefab: {fileID: 8933531609817203609, guid: 8f03bf1e332ee8246a6dbf5a014ba621,
     type: 3}
   spherePrefab: {fileID: 8221652969064009331, guid: 3c3b6b957fcca8c41be4233eb558d5e2,
@@ -1891,6 +1894,9 @@ MonoBehaviour:
   sphere: {fileID: 431635096}
   spheregroup: {fileID: 530034794}
   markerScript: {fileID: 1081100392}
+  m_MainTexture: {fileID: 0}
+  m_Normal: {fileID: 0}
+  m_Metal: {fileID: 0}
   pointPrefab: {fileID: 8933531609817203609, guid: 8f03bf1e332ee8246a6dbf5a014ba621,
     type: 3}
   spherePrefab: {fileID: 8221652969064009331, guid: 3c3b6b957fcca8c41be4233eb558d5e2,
