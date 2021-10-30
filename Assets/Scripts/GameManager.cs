@@ -47,6 +47,9 @@ public class GameManager : MonoBehaviour
     public bool showSecondGroup;
 
     [SerializeField]
+    public bool colorLines;
+
+    [SerializeField]
     public bool flipSecond;
 
     [SerializeField]
@@ -110,13 +113,14 @@ public class GameManager : MonoBehaviour
         else p("Could not find ParticleInfluenceLabel");
     }
     public void Init() {
-        kernelAngle = 45;
+        kernelAngle = 180;
         rotate = true;
         showSphere = false;
         showLines = true;
         showPoints = false;
         flipSecond = false;
         gridSize = 3;
+        colorLines = true;
         spinMode = 1;
         particleInfluence = 0.5f;
         useCompression = false;

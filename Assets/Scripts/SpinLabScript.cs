@@ -65,11 +65,25 @@ public class SpinLabScript : MonoBehaviour
     private static string DEFAULT_FORMULA = "<x>";
     private int[] sequence;
 
-    private Vector3 sphereOrigin;
+    private Vector3 spherePosition;
+    private Vector3 otherSpherePosition;
     private float direction;
     private float flip;
     private bool leftSide;
     private GameObject canvas;
+
+    // =================== SHELL CACHE ===================
+    private Dictionary<(float, float, int), Quaternion> shellCache = new Dictionary<(float, float, int), Quaternion>();
+    private Dictionary<(Vector3, Vector3, int), Vector3> midCache = new Dictionary<(Vector3, Vector3, int), Vector3>();
+    private int formulaKey;
+    private struct shellKey
+    {
+        float a;
+        float b;
+        float f;
+        
+    }
+
     void Update() {
 
         float dBracketAngle = _manager.speed / 5.0f;
@@ -91,13 +105,14 @@ public class SpinLabScript : MonoBehaviour
              bracketAngle = 45;// bracketAngle * anglePhase;
 
         }
-        bool debug = false;// Time.frameCount % 100 == 0;
+        bool debug = false;// Time.frameCount % 50 == 0;
         float compressionChange = compressionMagnitude * compressionPhase * (float)direction * flip;
         if (debug) {
             //p("angleToCompRatio=" + angleToCompRatio + ", _manager.kernelAngle = " + _manager.kernelAngle + ", anglePhase = " +
             //   anglePhase + ", direction=" + direction + ", oneKernelAngle * anglePhase=" + (_manager.kernelAngle * anglePhase) +
             //  ", modeBracket=" + modeBracket);
         }
+        
         foreach (KeyValuePair<float, Shell> entry in shellMap) {
             Shell shell = entry.Value;
             float r = entry.Key;
@@ -110,26 +125,29 @@ public class SpinLabScript : MonoBehaviour
                 oneKernelAngle = oneKernelAngle * anglePhase;
             }
 
-            float oneCompressionChange = compressionChange * fraction;
-
+           
             Transform shelltrans = shell.shell.transform;
-            rotateOneShell(shelltrans, bracketAngle, oneKernelAngle);
+            rotateOneShell(shelltrans, bracketAngle, oneKernelAngle, debug);
             debug = false;
             if (useCompression) {
+                float oneCompressionChange = compressionChange * fraction;
+
                 if (debug) {
                     //      p("compressionChange=" + compressionChange + ", radius=" + r + ", fraction=" +
                     //          fraction + ", oneCompressionChange=" + oneCompressionChange + ", direction=" + direction + ", spinMode=" + spinMode+", fraction is "+fraction);
                 }
                 compressOneShell(shelltrans, shell.scale, 1f + oneCompressionChange, debug);
+                if (shell.isSmallest()) compressOneShell(sphere, sphereScale, 1f + oneCompressionChange, debug);
             }
             if (shell.isSmallest()) {
-                rotateOneShell(sphere, bracketAngle, oneKernelAngle);
-                if (useCompression) compressOneShell(sphere, sphereScale, 1f + oneCompressionChange, debug);
+                rotateOneShell(sphere, bracketAngle, oneKernelAngle, debug);
+                
             }
+            debug = false;
         }
 
         if (useGridLines) {
-            this.updateGridLines();
+            if (leftSide)this.updateGridLines();
         }
         else updateSphericalLines();
         //  Time.timeScale = 0;
@@ -141,8 +159,15 @@ public class SpinLabScript : MonoBehaviour
         shell.localScale = origScale * scale;
         if (debug) p("compressOneShell: orig " + origScale + ",  scale is " + scale + " -> " + shell.localScale);
     }
-    private void rotateOneShell(Transform shell, float bracketAngle, float oneKernelAngle) {
-
+    private void rotateOneShell(Transform shell, float bracketAngle, float oneKernelAngle, bool debug) {
+       
+        if (this.shellCache.ContainsKey((bracketAngle, oneKernelAngle, formulaKey))) {
+            // found cached rotation
+            shell.rotation = shellCache[(bracketAngle, oneKernelAngle, formulaKey)];
+            if (debug) p("Using cache " + bracketAngle+"/" + oneKernelAngle + "/" + formulaKey);
+            return;
+        }
+        else if (debug) p("NOT Using cache " + bracketAngle + "/" + oneKernelAngle + "/" + formulaKey);
         Vector3 bracketVector = new Vector3(0, bracketAngle * direction * flip, 0);
         Vector3 minusBracketVector = new Vector3(0, -bracketAngle * direction * flip, 0);
         Vector3 kernelVectorX = new Vector3(oneKernelAngle, 0, 0);
@@ -179,6 +204,7 @@ public class SpinLabScript : MonoBehaviour
             overallRotation = bracketRotation * minusBracketRotation;
         }
         shell.rotation = overallRotation;
+        shellCache[(bracketAngle, oneKernelAngle, formulaKey)] = overallRotation;
     }
 
     private void createShells() {
@@ -187,7 +213,7 @@ public class SpinLabScript : MonoBehaviour
         shellMap = new Dictionary<float, Shell>();
 
         for (float r = smallRadius; r <= bigRadius; r += distBetweenPoints) {
-            GameObject s = Instantiate(spherePrefab, sphereOrigin, Quaternion.identity);
+            GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
             Shell shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence);
             shellMap.Add(r, shell);
         }
@@ -255,11 +281,12 @@ public class SpinLabScript : MonoBehaviour
         }
         );
         modeBracket = true;
-        sphereOrigin = sphere.transform.position;
+        spherePosition = sphere.transform.position;
+        otherSpherePosition = otherSphere.transform.position;
         this.direction = 1;
         this.flip = 1;
         leftSide = true;
-        if (sphereOrigin.x > 0) {
+        if (spherePosition.x > 0) {
             direction = -1;
             leftSide = false;
             if (_manager.flipSecond) {
@@ -313,6 +340,13 @@ public class SpinLabScript : MonoBehaviour
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         tgroup.isOn = (_manager.showSecondGroup);
 
+        Toggle tcolor = GameObject.Find("ColorLines").GetComponent<Toggle>();
+        tcolor.isOn = (_manager.colorLines);
+
+        Toggle tcomp = GameObject.Find("ToggleCompress").GetComponent<Toggle>();
+        tcomp.isOn = (_manager.useCompression);
+
+        
         Toggle tsphere = GameObject.Find("ShowSphere").GetComponent<Toggle>();
         tsphere.isOn = (_manager.showSphere);
 
@@ -339,7 +373,7 @@ public class SpinLabScript : MonoBehaviour
         createShells();
         if (useGridLines) {
             this.createGridPoints();
-            this.createGridLines();
+           if (leftSide) this.createGridLines();
         }
         else {
             createSphericalPoints();
@@ -364,6 +398,7 @@ public class SpinLabScript : MonoBehaviour
         sequence = new int[chars.Length];
         if (chars.Length == 0 ) {
             //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
+            
             return parseFormula(DEFAULT_FORMULA);
         }
         if (chars[0] != '<' && chars[chars.Length - 1] != '>') {
@@ -402,6 +437,7 @@ public class SpinLabScript : MonoBehaviour
         for (int i = 0; i < sequence.Length; i++) {
             //p("Operation "+i+": "+sequence[i]);
         }
+        this.formulaKey = sequence.GetHashCode();
         InputField f = GameObject.FindGameObjectWithTag("FormulaField").GetComponent<InputField>();
         f.text = formula;
         if (leftSide) _manager.formula = formula;
@@ -452,14 +488,17 @@ public class SpinLabScript : MonoBehaviour
             return a;
 
         }
+        if (this.midCache.ContainsKey((a,b, axis))) {
+            return midCache[(a, b, axis)];
+        }
         float wa = 1.0f;
         float wb = 1.0f;
         float f = 1.0f;
         float ax = a.x;
         float bx = b.x;
 
-        float xme = this.sphere.transform.position.x;
-        float xother = this.otherSphere.transform.position.x;
+        float xme = this.spherePosition.x;
+        float xother = this.otherSpherePosition.x;
 
         float dxa = Mathf.Abs((xme - ax) / xme);
         float dxb = Mathf.Abs((xother - bx) / xother);
@@ -478,7 +517,9 @@ public class SpinLabScript : MonoBehaviour
             p("Other point: " + bx + "/" + b.y + "/" + b.z + "     wb=" + wb);
             p("->Midpoint: " + x + "/" + y + "/" + z + ", total is " + tot);
         }
-        return new Vector3(x, y, z);
+        Vector3 mid =  new Vector3(x, y, z);
+        midCache[(a, b, axis)] = mid;
+        return mid;
 
 
     }
@@ -505,8 +546,8 @@ public class SpinLabScript : MonoBehaviour
             if (ax == 0) {
                 for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
                     float x = minGrid + i * distBetweenPoints;
-                    if (x == sphere.transform.position.x) this.gridxleft = i;
-                    else if (x == otherSphere.transform.position.x) this.gridxright = i;
+                    if (x == spherePosition.x) this.gridxleft = i;
+                    else if (x == otherSpherePosition.x) this.gridxright = i;
                     int j = nrGridPointsPerAxis[1] / 2;
                     for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
 
@@ -548,14 +589,14 @@ public class SpinLabScript : MonoBehaviour
         points[i, j, k] = gpoint;
 
         gpoint.GetComponent<Renderer>().enabled = false;
-        float r = Vector3.Distance(v, this.sphereOrigin);
+        float r = Vector3.Distance(v, this.spherePosition);
 
         bool debug = (i == 5 && k == 5);
         if (debug) p("Creating point " + i + "/" + j + "/" + k + ", r=" + r);
         Shell shell = null;
         shellMap.TryGetValue(r, out shell);
         if (shell == null) {
-            GameObject s = Instantiate(spherePrefab, sphereOrigin, Quaternion.identity);
+            GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
             shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence);
 
             shellMap.Add(r, shell);
@@ -570,7 +611,7 @@ public class SpinLabScript : MonoBehaviour
 
         nrpointsPerRing = (int)(360.0f / dalpha) + 1;
         points = new GameObject[_manager.nrAxis, rings, nrpointsPerRing];
-        Vector3 pointcoord = sphereOrigin;
+        Vector3 pointcoord = spherePosition;
         centerpoint = Instantiate(pointPrefab, pointcoord, Quaternion.identity);
         centerpoint.GetComponent<Renderer>().material.SetColor("_Color", Color.gray);
 
@@ -585,16 +626,16 @@ public class SpinLabScript : MonoBehaviour
                     Color c = Color.gray;
                     if (ax == 0) {
                         vr = new Vector3(r, 0, 0);
-                        pointcoord = sphereOrigin + Quaternion.Euler(0, alpha * direction * flip, 0) * vr;
+                        pointcoord = spherePosition + Quaternion.Euler(0, alpha * direction * flip, 0) * vr;
                     }
                     else if (ax == 1) {
                         vr = new Vector3(0, r, 0);
-                        pointcoord = sphereOrigin + Quaternion.Euler(alpha, 0, 0) * vr;
+                        pointcoord = spherePosition + Quaternion.Euler(alpha, 0, 0) * vr;
                     }
                     else if (ax == 2) {
                         vr = new Vector3(0, r, 0);
 
-                        pointcoord = sphereOrigin + Quaternion.Euler(0, 0, alpha) * vr;
+                        pointcoord = spherePosition + Quaternion.Euler(0, 0, alpha) * vr;
                     }
 
                     GameObject point = Instantiate(pointPrefab, pointcoord, Quaternion.identity);
@@ -807,7 +848,7 @@ public class SpinLabScript : MonoBehaviour
         lr.SetPosition(0, a); //x,y and z position of the starting point of the line
         lr.SetPosition(1, b);
 
-        checkColorOfLine(lr, 0);
+        if (_manager.colorLines==true) checkColorOfLine(lr, 0);
 
 
         return lr;
@@ -840,8 +881,8 @@ public class SpinLabScript : MonoBehaviour
         float xb = b.x;
 
         float t = 1.0f;
-        float r1 = Vector3.Distance(a, this.sphere.transform.position) / 5.0f;
-        float r2 = Vector3.Distance(a, this.otherSphere.transform.position) / 5.0f;
+        float r1 = Vector3.Distance(a, this.spherePosition) / 5.0f;
+        float r2 = Vector3.Distance(a, this.otherSpherePosition) / 5.0f;
 
         float r = Mathf.Max(0, Mathf.Min(r1, r2) / _manager.particleInfluence - 2.0f);
         t = 1.0f / (1.0f + r * r);
@@ -887,6 +928,9 @@ public class SpinLabScript : MonoBehaviour
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         Toggle tflip = GameObject.FindGameObjectWithTag("ToggleFlip").GetComponent<Toggle>();
 
+        Toggle tcolor = GameObject.Find("ColorLines").GetComponent<Toggle>();
+
+        Toggle tcomp = GameObject.Find("ToggleCompress").GetComponent<Toggle>();
 
         float particleInfluence = (float)pslider.value;
         string formula = f.text;
@@ -896,7 +940,8 @@ public class SpinLabScript : MonoBehaviour
         int numberOfSteps = (int)aslider.maxValue / 5;
         float range = (angle / aslider.maxValue) * numberOfSteps;
         int ceil = Mathf.CeilToInt(range);
-        aslider.value = ceil * 5;
+        angle = ceil*5;
+        aslider.value = angle;
 
 
 
@@ -904,6 +949,8 @@ public class SpinLabScript : MonoBehaviour
         this.parseFormula(formula);
         if (leftSide) {
             _manager.flipSecond = tflip.isOn;
+            _manager.colorLines = tcolor.isOn;
+            _manager.useCompression = tcomp.isOn;
             _manager.showSphere = tsphere.isOn;
             _manager.showSecondGroup = tgroup.isOn;
             _manager.gridSize = (int)gslider.value;
@@ -970,7 +1017,7 @@ public class SpinLabScript : MonoBehaviour
         }
         if (end != Vector3.zero) {
             updateOneGridLine(lr, start, end);
-            this.checkColorOfLine(lr, ax);
+            if (_manager.colorLines==true) this.checkColorOfLine(lr, ax);
         }
         //     else p("There was no end point");
     }
@@ -1107,7 +1154,7 @@ public class SpinLabScript : MonoBehaviour
         if (leftSide) _manager.speed = speed;
 
         //  markerScript.markerCount = (int)(150 / speed);
-        markerScript.frameDelta = (int)(50 / speed);
+        markerScript.frameDelta = Mathf.Max(1,(int)(10 / speed));
         markerScript.restart();
 
         at.text = "Speed " + (int)aslider.value;
@@ -1194,10 +1241,16 @@ public class SpinLabScript : MonoBehaviour
 
     }
     public void toggleCompression(bool v) {
-        p("Toggle compression clicked: " + v);
-        if (leftSide) _manager.useCompression = !_manager.useCompression;
-
+       
+        _manager.useCompression = !_manager.useCompression;
+        p("Toggle compression clicked: " + _manager.useCompression);
         restartMarkers();
+
+    }
+    public void toggleColor(bool v) {
+       
+         _manager.colorLines = !_manager.colorLines;
+        p("Toggle color clicked: " + _manager.colorLines);
 
     }
 

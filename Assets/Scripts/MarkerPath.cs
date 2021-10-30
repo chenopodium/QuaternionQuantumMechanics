@@ -10,11 +10,11 @@ public class MarkerPath : MonoBehaviour
     public int markerCount=200;
     private GameObject[] markers;
     private LineRenderer[] lines;
-    public int frameDelta=50;
+    public int frameDelta=10;
     // Start is called before the first frame update
     void Start()
     {
-        if (frameDelta < 5) frameDelta = 50;
+        if (frameDelta < 5) frameDelta = 10;
 
         create();
 
