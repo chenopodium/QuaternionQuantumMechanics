@@ -42,6 +42,9 @@ public class MarkerPath : MonoBehaviour
             }
         }
     }
+    public void setActive(bool b) {
+        this.enabled = b;
+    }
     public void restart() {
         restart(markerCount);
     }

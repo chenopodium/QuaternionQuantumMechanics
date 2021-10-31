@@ -1154,7 +1154,7 @@ public class SpinLabScript : MonoBehaviour
         if (leftSide) _manager.speed = speed;
 
         //  markerScript.markerCount = (int)(150 / speed);
-        markerScript.frameDelta = Mathf.Max(1,(int)(10 / speed));
+        markerScript.frameDelta = Mathf.Max(1,(int)(5 / speed));
         markerScript.restart();
 
         at.text = "Speed " + (int)aslider.value;
@@ -1182,7 +1182,9 @@ public class SpinLabScript : MonoBehaviour
         at.text = "Grid Size " + (int)aslider.value;
     }
     private void restartMarkers() {
-        markerScript.restart();
+        markerScript.setActive(this.leftSide );
+        if (this.leftSide) markerScript.restart();
+        
     }
 
     public void toggleVisible(bool v) {
@@ -1226,12 +1228,14 @@ public class SpinLabScript : MonoBehaviour
         }
     }
     public void toggleLines(bool v) {
+        if (_manager == null) return;
         p("Toggle lines clicked: " + v);
         if (leftSide) _manager.showLines = !_manager.showLines;
 
 
     }
     public void flipSecond(bool v) {
+        if (_manager == null) return;
         p("Toggle flipSecond clicked: " + v);
         if (leftSide) {
             _manager.flipSecond = !_manager.flipSecond;
@@ -1241,14 +1245,14 @@ public class SpinLabScript : MonoBehaviour
 
     }
     public void toggleCompression(bool v) {
-       
+        if (_manager == null) return;
         _manager.useCompression = !_manager.useCompression;
         p("Toggle compression clicked: " + _manager.useCompression);
         restartMarkers();
 
     }
     public void toggleColor(bool v) {
-       
+        if (_manager == null) return;
          _manager.colorLines = !_manager.colorLines;
         p("Toggle color clicked: " + _manager.colorLines);
 
