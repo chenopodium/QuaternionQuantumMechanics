@@ -5,6 +5,7 @@ using UnityEngine;
 public class MarkerPath : MonoBehaviour
 {
 
+    public bool visible;
     public GameObject marker;
     private int count;
     public int markerCount=200;
@@ -21,6 +22,7 @@ public class MarkerPath : MonoBehaviour
     }
     private void create() {
 
+        if (!visible) return;
         if (markers != null) {
             for (int i = 0; i < markerCount; i++) {
                 if (markers[i] != null) Destroy(markers[i]);
@@ -53,6 +55,7 @@ public class MarkerPath : MonoBehaviour
         create();
     }
     private LineRenderer addLine(Color c, Vector3 a, Vector3 b) {
+        if (!visible) return null;
         LineRenderer lr = new GameObject("Line").AddComponent<LineRenderer>();
 
         //  Debug.DrawLine(a,b, Color.yellow,20f);
@@ -84,6 +87,7 @@ public class MarkerPath : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!visible) return;
         if (Time.frameCount % frameDelta == 0) {
             
             next();

@@ -914,6 +914,11 @@ public class SpinLabScript : MonoBehaviour
 
     }
 
+    private void setSimpleTwist() {
+        _manager.setSimpleTwist();
+        refresh("");
+    }
+
     public void refresh(string nada) {
         p("***** refresh *****");
         Slider aslider = GameObject.FindGameObjectWithTag("AngleSlider").GetComponent<Slider>();
@@ -1182,7 +1187,7 @@ public class SpinLabScript : MonoBehaviour
         at.text = "Grid Size " + (int)aslider.value;
     }
     private void restartMarkers() {
-        markerScript.setActive(this.leftSide );
+        markerScript.visible = (this.leftSide );
         if (this.leftSide) markerScript.restart();
         
     }

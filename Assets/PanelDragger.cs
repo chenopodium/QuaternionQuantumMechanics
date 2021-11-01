@@ -9,10 +9,25 @@ public class PanelDragger : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
 
     private float z;
 
+    private GameManager _manager;
 
     void Start() {
          z = transform.position.z;
-    //    p("******** Start **********, z is "+z);
+        //    p("******** Start **********, z is "+z);
+        RectTransform rect = GetComponent<RectTransform>();
+
+        if (_manager == null) _manager = GameObject.FindObjectOfType<GameManager>();
+        if (_manager != null && _manager.panelPosition != null) {
+             rect.position = _manager.panelPosition;
+        }
+       
+        int count = countInside(rect);
+        if (count < 4) {
+            p("Screen res: " + Screen.width + ", " + Screen.height);
+            rect.position = new Vector3(Screen.width/2, Screen.height/2, z);
+            p("Not all corners visible: " + count + ", moving to " + rect.position);
+
+        }
 
     }
     /// <summary>
@@ -40,11 +55,13 @@ public class PanelDragger : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
         rect.position = newPosition;
         if (IsRectTransformInsideSreen(rect)) {
             rect.position = newPosition;
-        //    p("Moving panel to " + newPosition);
+       //     p("Moving panel to " + newPosition);
+            if (_manager == null) _manager = GameObject.FindObjectOfType<GameManager>();
+            if (_manager != null) _manager.panelPosition = newPosition;
         }
         else {
             rect.position = oldPos;
-          //  p("Moving panel BACK to " + oldPos);
+       //     p("Moving panel BACK to " + oldPos);
         }
         
         lastMousePosition = currentMousePosition;
@@ -68,7 +85,14 @@ public class PanelDragger : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
     /// <param name="rectTransform">Rect Trasform</param>
     /// <returns></returns>
     private bool IsRectTransformInsideSreen(RectTransform rectTransform) {
-        bool isInside = false;
+       
+        Vector3[] corners = new Vector3[4];
+        rectTransform.GetWorldCorners(corners);
+        int visibleCorners = countInside(rectTransform);
+        bool  isInside = visibleCorners > 0;
+        return isInside;
+    }
+    private int countInside(RectTransform rectTransform) {
         Vector3[] corners = new Vector3[4];
         rectTransform.GetWorldCorners(corners);
         int visibleCorners = 0;
@@ -78,10 +102,7 @@ public class PanelDragger : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
                 visibleCorners++;
             }
         }
-        if (visibleCorners == 4) {
-            isInside = true;
-        }
-        p("vis corners: " + visibleCorners);
-        return isInside;
+       
+        return visibleCorners;
     }
 }

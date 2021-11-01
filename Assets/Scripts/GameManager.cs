@@ -13,6 +13,10 @@ public class GameManager : MonoBehaviour
 
     private List<GameListener> listeners;
 
+
+    [SerializeField]
+    public Vector3 panelPosition;
+
     [SerializeField]
     public float kernelAngle;
 
@@ -112,8 +116,8 @@ public class GameManager : MonoBehaviour
         if (at != null)  at.text = "Particle influence is " + particleInfluence;
         else p("Could not find ParticleInfluenceLabel");
     }
-    public void Init() {
-        kernelAngle = 180;
+    public void Reset() {
+        kernelAngle = 45;
         rotate = true;
         showSphere = false;
         showLines = true;
@@ -125,11 +129,74 @@ public class GameManager : MonoBehaviour
         particleInfluence = 0.5f;
         useCompression = false;
         showSecondGroup = false;
-        speed = 5.0f;
+        speed = 3.0f;
         compressionSpeed = 2.0f;
         compressionMagnitude = 0.8f;
         nrAxis = 1;
         formula = "<x>";
+    }
+    public void setSimpleTwist() {
+        Reset();
+        useCompression = false;
+        speed = 3;
+        gridSize = 3;
+        spinMode = 1;
+        showSecondGroup = false;
+        kernelAngle = 45;
+        formula = "x";
+        nrAxis = 1;
+        showLines = true;
+        colorLines = false;
+        flipSecond = false;
+        particleInfluence = 0.5f;
+    }
+    public void setDoubleTwist() {
+        Reset();
+        useCompression = false;
+        speed = 3;
+        gridSize = 3;
+        spinMode = 1;
+        showSecondGroup = false;
+        kernelAngle = 45;
+        formula = "xy";
+        nrAxis = 1;
+        showLines = true;
+        colorLines = false;
+        flipSecond = false;
+        particleInfluence = 0.5f;
+    }
+    public void setSimpleSpin() {
+        Reset();
+        useCompression = false;
+        speed = 3;
+        gridSize = 3;
+        spinMode = 1;
+        showSecondGroup = false;
+        kernelAngle = 45;
+        formula = "<x>";
+        nrAxis = 1;
+        showLines = true;
+        colorLines = false;
+        flipSecond = false;
+        particleInfluence = 0.5f;
+    }
+    public void setComplexSpin() {
+        Reset();
+        useCompression = false;
+        speed = 5;
+        gridSize = 3;
+        spinMode = 1;
+        showSecondGroup = true;
+        kernelAngle = 180;
+        formula = "<x>";
+        nrAxis = 1;
+        showLines = true;
+        colorLines = false;
+        flipSecond = false;
+        particleInfluence = 0.5f;
+    }
+    public void Init() {
+        Reset();
         initUi();
     }
 }
