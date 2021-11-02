@@ -12,12 +12,28 @@ public class MarkerPath : MonoBehaviour
     private GameObject[] markers;
     private LineRenderer[] lines;
     public int frameDelta=10;
+
+    public GameObject arrowPrefab;
+    private GameObject arrow;
+
+    private Material mat;
     // Start is called before the first frame update
     void Start()
     {
-        if (frameDelta < 5) frameDelta = 10;
+        if (frameDelta < 3) frameDelta = 3;
 
-        create();
+        Quaternion arrowRotation = Quaternion.LookRotation(Vector3.up);
+        arrow = Instantiate(arrowPrefab, transform.position, arrowRotation);
+        GameObject onemarker = Instantiate(marker, transform.position, Quaternion.identity);
+        mat = onemarker.GetComponent<Renderer>().material;
+        //  arrow.GetComponent<Renderer>().material = mat;
+
+        p("arrow material: " + arrow.GetComponent<Renderer>().material);
+        arrow.transform.localScale *= 0.2f;
+        mat.SetColor("_Color", Color.red);
+        arrow.GetComponent<Renderer>().material = mat;
+        p("arrow color. " + arrow.GetComponent<Renderer>().material.color);
+        create(); 
 
     }
     private void create() {
@@ -58,10 +74,7 @@ public class MarkerPath : MonoBehaviour
         if (!visible) return null;
         LineRenderer lr = new GameObject("Line").AddComponent<LineRenderer>();
 
-        //  Debug.DrawLine(a,b, Color.yellow,20f);
-        Material m = new Material(Shader.Find("Sprites/Default"));
-        // Material m = new Material(Shader.Find("Unlit/Texture"));
-        lr.material = m;
+        lr.material = mat;
 
         lr.startWidth = 0.01f;
         lr.endWidth = 0.01f;
@@ -77,7 +90,7 @@ public class MarkerPath : MonoBehaviour
     }
 
     private void p(string s) {
-        Debug.Log("MarkerPath: " + s);
+        Debug.Log("------------- MarkerPath: " + s);
     }
     private int next() {
         count++;
@@ -96,8 +109,18 @@ public class MarkerPath : MonoBehaviour
             m.transform.position = transform.position;
             if (count > 0) {
                 LineRenderer lr = lines[count];
-                lr.SetPosition(0, markers[count - 1].transform.position);
-                lr.SetPosition(1,m.transform.position);
+                Vector3 before = markers[count - 1].transform.position;
+                Vector3 after = m.transform.position;
+                lr.SetPosition(0,before );
+                lr.SetPosition(1,after);
+                Quaternion targetRotation = Quaternion.LookRotation(after - before);
+
+                arrow.transform.rotation = targetRotation;
+              //   Quaternion.Lerp(arrow.transform.rotation, targetRotation, 10f * Time.deltaTime);
+                arrow.transform.position = before;
+
+               // arrow.transform.position = Vector3.Lerp(m.transform.position, after, Time.deltaTime * 1.0f);
+
             }
 
         }

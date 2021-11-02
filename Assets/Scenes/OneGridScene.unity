@@ -2605,6 +2605,12 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 4787138432708448347, guid: 6d12349a1e540074d8f7d0c8222a7c27,
+        type: 3}
+      propertyPath: arrowPrefab
+      value: 
+      objectReference: {fileID: 3644181526792378645, guid: 1332b67a7a9e4446ab8116c9776b18ad,
+        type: 3}
     - target: {fileID: 4787138434245483738, guid: 6d12349a1e540074d8f7d0c8222a7c27,
         type: 3}
       propertyPath: m_TagString
@@ -7420,6 +7426,12 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 4787138432708448347, guid: 6d12349a1e540074d8f7d0c8222a7c27,
+        type: 3}
+      propertyPath: arrowPrefab
+      value: 
+      objectReference: {fileID: 3644181526792378645, guid: 1332b67a7a9e4446ab8116c9776b18ad,
+        type: 3}
     - target: {fileID: 4787138434245483738, guid: 6d12349a1e540074d8f7d0c8222a7c27,
         type: 3}
       propertyPath: m_TagString
