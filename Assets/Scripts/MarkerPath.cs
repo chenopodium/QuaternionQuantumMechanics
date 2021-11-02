@@ -20,25 +20,29 @@ public class MarkerPath : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        visible = true;
         if (frameDelta < 3) frameDelta = 3;
 
         Quaternion arrowRotation = Quaternion.LookRotation(Vector3.up);
         arrow = Instantiate(arrowPrefab, transform.position, arrowRotation);
         GameObject onemarker = Instantiate(marker, transform.position, Quaternion.identity);
         mat = onemarker.GetComponent<Renderer>().material;
-        //  arrow.GetComponent<Renderer>().material = mat;
-
-        p("arrow material: " + arrow.GetComponent<Renderer>().material);
+       
+       // p("arrow material: " + arrow.GetComponent<Renderer>().material);
         arrow.transform.localScale *= 0.2f;
-        mat.SetColor("_Color", Color.red);
-        arrow.GetComponent<Renderer>().material = mat;
-        p("arrow color. " + arrow.GetComponent<Renderer>().material.color);
+      
+        Material arrowMat = arrow.GetComponent<MeshRenderer>().material;
+        arrowMat.SetColor("_Color", Color.red);
+        //  p("arrow color. " + arrow.GetComponent<Renderer>().material.color);
         create(); 
 
     }
     private void create() {
 
-        if (!visible) return;
+        if (!visible) {
+            p("Not visible, not drawing marker");
+            return;
+        }
         if (markers != null) {
             for (int i = 0; i < markerCount; i++) {
                 if (markers[i] != null) Destroy(markers[i]);

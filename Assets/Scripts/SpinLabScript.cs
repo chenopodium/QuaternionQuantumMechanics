@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -294,6 +295,16 @@ public class SpinLabScript : MonoBehaviour
                 p("Second side is flipped");
             }
         }
+      
+       
+
+        updateUiFromManagerValues();
+        checkVisibility();
+        //p("awake: setting speed to " + speed + " and angle to " + nrAxis + ", axis is " + nrAxis+", formula "+formula+ "< _manager.particleInfluence="+ _manager.particleInfluence);
+
+
+    }
+    private void updateUiFromManagerValues() {
         float angle = _manager.kernelAngle;
         int nrAxis = Mathf.Max(1, _manager.nrAxis);
         string formula = _manager.formula;
@@ -319,6 +330,7 @@ public class SpinLabScript : MonoBehaviour
         at = GameObject.Find("SpeedLabel").GetComponent<Text>();
         at.text = "Speed " + (int)speed;
 
+
         Slider mslider = GameObject.FindGameObjectWithTag("SpinSlider").GetComponent<Slider>();
         mslider.SetValueWithoutNotify(speed);
         at = GameObject.Find("SpinLabel").GetComponent<Text>();
@@ -337,6 +349,14 @@ public class SpinLabScript : MonoBehaviour
         gslider.value = _manager.gridSize;
         at.text = "Grid size " + _manager.gridSize;
 
+        try {
+            Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+            preselect.value = (_manager.preselect);
+        }
+        catch (Exception e) {
+            p("Could not get dropwidn: " + e);
+        }
+
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         tgroup.isOn = (_manager.showSecondGroup);
 
@@ -346,7 +366,7 @@ public class SpinLabScript : MonoBehaviour
         Toggle tcomp = GameObject.Find("ToggleCompress").GetComponent<Toggle>();
         tcomp.isOn = (_manager.useCompression);
 
-        
+
         Toggle tsphere = GameObject.Find("ShowSphere").GetComponent<Toggle>();
         tsphere.isOn = (_manager.showSphere);
 
@@ -357,12 +377,6 @@ public class SpinLabScript : MonoBehaviour
 
             //  oflip.SetActive(_manager.showSecondGroup);
         }
-
-
-        checkVisibility();
-        //p("awake: setting speed to " + speed + " and angle to " + nrAxis + ", axis is " + nrAxis+", formula "+formula+ "< _manager.particleInfluence="+ _manager.particleInfluence);
-
-
     }
     void Start() {
         p("******** Start **********");
@@ -559,7 +573,7 @@ public class SpinLabScript : MonoBehaviour
             else if (ax == 1) {
                 int i = gridxleft;
                 if (direction < 0) i = gridxright;
-                p("Creating points for axis 1, i is " + i);
+             //   p("Creating points for axis 1, i is " + i);
                 for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
                     for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
                         createPoint(minGrid, c, i, j, k);
@@ -591,7 +605,7 @@ public class SpinLabScript : MonoBehaviour
         gpoint.GetComponent<Renderer>().enabled = false;
         float r = Vector3.Distance(v, this.spherePosition);
 
-        bool debug = (i == 5 && k == 5);
+        bool debug = false;// (i == 5 && k == 5);
         if (debug) p("Creating point " + i + "/" + j + "/" + k + ", r=" + r);
         Shell shell = null;
         shellMap.TryGetValue(r, out shell);
@@ -933,6 +947,8 @@ public class SpinLabScript : MonoBehaviour
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         Toggle tflip = GameObject.FindGameObjectWithTag("ToggleFlip").GetComponent<Toggle>();
 
+        Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+       
         Toggle tcolor = GameObject.Find("ColorLines").GetComponent<Toggle>();
 
         Toggle tcomp = GameObject.Find("ToggleCompress").GetComponent<Toggle>();
@@ -953,6 +969,7 @@ public class SpinLabScript : MonoBehaviour
         float speed = sslider.value;
         this.parseFormula(formula);
         if (leftSide) {
+            _manager.preselect = preselect.value;
             _manager.flipSecond = tflip.isOn;
             _manager.colorLines = tcolor.isOn;
             _manager.useCompression = tcomp.isOn;
@@ -1187,9 +1204,30 @@ public class SpinLabScript : MonoBehaviour
         at.text = "Grid Size " + (int)aslider.value;
     }
     private void restartMarkers() {
-        markerScript.visible = (this.leftSide );
+       //s markerScript.visible = (this.leftSide );
         if (this.leftSide) markerScript.restart();
         
+    }
+    public void selectionChanged(int change) {
+        p("selectionChanged: change=" + change);
+        Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+        if (preselect == null) {
+            p("Could not find dropdown");
+            return;
+        }
+
+        int which = preselect.value;
+        p("selectionChanged: " + which);
+        if (which == 0) _manager.setSimpleTwist();
+        else if (which == 1) _manager.setSimpleCompression();
+        else if (which == 2) _manager.setSimpleSpin();
+        else if (which == 3) _manager.setComplexSpin(false);
+        else if (which == 5) _manager.setDoubleTwist();
+        else if (which == 6) _manager.setComplexSpin(true);
+        _manager.preselect = which;
+        p("Manager preselect is now: " + which);
+        updateUiFromManagerValues();
+        this.refresh("");
     }
 
     public void toggleVisible(bool v) {
