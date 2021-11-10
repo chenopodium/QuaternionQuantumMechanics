@@ -150,7 +150,7 @@ public class CameraFly : MonoBehaviour
             setModeFly(true);
             transform.Translate(-Vector3.up * flySpeed * 0.5f, Space.World);
         }
-        else if (Input.GetKey(KeyCode.Escape)  || Input.GetKey(KeyCode.X) ||
+        else if (Input.GetKey(KeyCode.Escape)   ||
             (Input.GetKeyDown(KeyCode.LeftControl) && Input.GetKey(KeyCode.C)) ) {
             Application.Quit();
         }

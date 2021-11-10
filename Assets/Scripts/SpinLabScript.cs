@@ -266,8 +266,8 @@ public class SpinLabScript : MonoBehaviour
     }
     private void resetCam() {
         cam = GameObject.FindGameObjectWithTag("MainCamera");
-        cam.transform.position = new Vector3(0, 2, -16);
-        cam.transform.rotation = Quaternion.Euler(6, 0, 0);
+        cam.transform.position = new Vector3(0, 3, -16);
+        cam.transform.rotation = Quaternion.Euler(8, 0, 0);
         p("using default cam pos. cam is " + cam.transform.position);
 
     }
@@ -333,7 +333,8 @@ public class SpinLabScript : MonoBehaviour
         //p("Awake: Formula from game manager is " + formula + ", calling parseFormula, visible is " + isVisible());
         cam = GameObject.FindGameObjectWithTag("MainCamera");
 
-        if (Time.frameCount>100 && _manager.camPosition != null && cam != null) {
+        if (Time.frameCount>2000 && _manager.camPosition != null && cam != null &&
+             (_manager.camPosition.x+ _manager.camPosition.y + _manager.camPosition.z) != 0) {
             cam.transform.position = _manager.camPosition;
             cam.transform.rotation = _manager.camRotation;
             p("setting camera transform: " + cam.transform);
@@ -434,19 +435,21 @@ public class SpinLabScript : MonoBehaviour
         int bras = 0;
         int kets = 0;
         modeBracket = true;
-        //p("parseFormula: formula is " + formula);
+        p("parseFormula: formula is " + formula);
         if (formula == null || formula.Length < 1) {
             //      p("Formula " + formula + " is too short, using default");
             return parseFormula(DEFAULT_FORMULA);
         }
+      
         char[] chars = formula.Trim().ToCharArray();
         sequence = new int[chars.Length];
+        p("Got formula chars length " + sequence.Length);
         if (chars.Length == 0 ) {
             //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
             
             return parseFormula(DEFAULT_FORMULA);
         }
-        if (chars[0] != '<' && chars[chars.Length - 1] != '>') {
+        if (chars.Length<1 || (chars[0] != '<' && chars[chars.Length - 1] != '>')) {
             //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
             modeBracket = false;
         }
@@ -478,7 +481,7 @@ public class SpinLabScript : MonoBehaviour
             //      p("Unequal number of bras " + bras + " and kets " + kets+": "+formula);
             return parseFormula(DEFAULT_FORMULA);
         }
-        //p("parseFormula: formula " + formula + " looks ok, sequence is "+sequence.ToString());
+        p("parseFormula: formula " + formula + " looks ok, sequence is "+sequence.ToString());
         for (int i = 0; i < sequence.Length; i++) {
             //p("Operation "+i+": "+sequence[i]);
         }
