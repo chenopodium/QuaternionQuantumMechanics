@@ -50,7 +50,7 @@ public class CameraFly : MonoBehaviour
         float screeny = Screen.height / 2;
         
         Vector3 point = cam.ScreenToWorldPoint(new Vector3(screenx, screeny, cam.nearClipPlane));
-        p("Moving canvas to " + point);
+   //     p("Moving canvas to " + point);
         canvas.transform.position = point;
 
 
@@ -184,7 +184,7 @@ public class CameraFly : MonoBehaviour
             setModeFly(false);
             
            
-            p("User entered ESC or F1, F2 or X (mode fly =false)");
+            //p("User entered ESC or F1, F2 or X (mode fly =false)");
         }
     }
     private void setModeFly(bool fly) {

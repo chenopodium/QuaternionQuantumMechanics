@@ -23,9 +23,9 @@ public class PanelDragger : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
        
         int count = countInside(rect);
         if (count < 4) {
-            p("Screen res: " + Screen.width + ", " + Screen.height);
+         //   p("Screen res: " + Screen.width + ", " + Screen.height);
             rect.position = new Vector3(Screen.width/2, Screen.height/2, z);
-            p("Not all corners visible: " + count + ", moving to " + rect.position);
+         //   p("Not all corners visible: " + count + ", moving to " + rect.position);
 
         }
 

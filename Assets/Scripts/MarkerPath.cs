@@ -37,17 +37,23 @@ public class MarkerPath : MonoBehaviour
         create(); 
 
     }
-    private void create() {
 
-        if (!visible) {
-            p("Not visible, not drawing marker");
-            return;
-        }
+    public void destroy() {
         if (markers != null) {
             for (int i = 0; i < markerCount; i++) {
                 if (markers[i] != null) Destroy(markers[i]);
                 if (lines[i] != null) Destroy(lines[i]);
             }
+        }
+       // visible = false;
+    }
+    private void create() {
+        destroy();
+
+
+        if (!visible) {
+            p("Not visible, not drawing marker");
+            return;
         }
         // p("About to create markers");
         markers = new GameObject[markerCount];
@@ -65,7 +71,7 @@ public class MarkerPath : MonoBehaviour
         }
     }
     public void setActive(bool b) {
-        this.enabled = b;
+        this.visible = b;
     }
     public void restart() {
         restart(markerCount);
@@ -105,9 +111,8 @@ public class MarkerPath : MonoBehaviour
     void Update()
     {
         if (!visible) return;
-        if (Time.frameCount % frameDelta == 0) {
-            
-            next();
+        if (Time.frameCount>0 && Time.frameCount % frameDelta == 0) {
+           
           //  p("Updating marker pos " + count);
             GameObject m = markers[count];
             m.transform.position = transform.position;
@@ -127,6 +132,7 @@ public class MarkerPath : MonoBehaviour
 
             }
 
+            next();
         }
     }
 }

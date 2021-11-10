@@ -15,6 +15,12 @@ public class GameManager : MonoBehaviour
 
 
     [SerializeField]
+    public Vector3 camPosition;
+
+    [SerializeField]
+    public Quaternion camRotation;
+
+    [SerializeField]
     public Vector3 panelPosition;
 
     [SerializeField]

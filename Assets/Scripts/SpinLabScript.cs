@@ -20,7 +20,7 @@ public class SpinLabScript : MonoBehaviour
     private bool useGridLines = true;
     // ======================== PRIVATE ==========================
 
-
+    private GameObject cam;
     private int[] nrGridPointsPerAxis = new int[3];
     // ======================== SHELLS ==========================
     private Dictionary<float, Shell> shellMap = new Dictionary<float, Shell>();
@@ -72,6 +72,11 @@ public class SpinLabScript : MonoBehaviour
     private float flip;
     private bool leftSide;
     private GameObject canvas;
+
+    private int colorMode = 0;
+    private static int colorByY = 1;
+    private static int colorByStrain = 2;
+    private static int colorByAxis = 0;
 
     // =================== SHELL CACHE ===================
     private Dictionary<(float, float, int), Quaternion> shellCache = new Dictionary<(float, float, int), Quaternion>();
@@ -255,19 +260,30 @@ public class SpinLabScript : MonoBehaviour
 
     }
     private void Awake() {
-        p("***** Awake dirction " + direction + "  ***** frame " + Time.frameCount);
+        p("***** Awake direction " + direction + "  ***** frame " + Time.frameCount);
 
         StartCoroutine(ReallyAwake());
     }
+    private void resetCam() {
+        cam = GameObject.FindGameObjectWithTag("MainCamera");
+        cam.transform.position = new Vector3(0, 2, -16);
+        cam.transform.rotation = Quaternion.Euler(6, 0, 0);
+        p("using default cam pos. cam is " + cam.transform.position);
+
+    }
     private System.Collections.IEnumerator ReallyAwake() {
         p("***** ReallyAwake direction " + direction + "  ***** frame " + Time.frameCount + ", manager is " + GameObject.FindObjectOfType<GameManager>());
-        if (GameObject.FindObjectOfType<GameManager>() == null) yield return null;
+        if (GameObject.FindObjectOfType<GameManager>() == null) {
+          
+            yield return null;
+        }
         //   yield return new WaitUntil(() => GameObject.FindObjectOfType<GameManager>()!=null);
         _manager = GameObject.FindObjectOfType<GameManager>();
-        p("GameManager is now " + _manager);
+        //p("GameManager is now " + _manager);
         canvas = GameObject.FindGameObjectWithTag("Canvas");
         GameObject panel = Find(canvas, "HelpGroup");
 
+        cam = GameObject.FindGameObjectWithTag("MainCamera");
         if (panel != null) {
             panel.SetActive(false);
         }
@@ -281,6 +297,9 @@ public class SpinLabScript : MonoBehaviour
             }
         }
         );
+
+     
+
         modeBracket = true;
         spherePosition = sphere.transform.position;
         otherSpherePosition = otherSphere.transform.position;
@@ -311,7 +330,18 @@ public class SpinLabScript : MonoBehaviour
         float speed = _manager.speed;
         spinMode = System.Math.Max(1, _manager.spinMode);
 
-        p("Awake: Formula from game manager is " + formula + ", calling parseFormula, visible is " + isVisible());
+        //p("Awake: Formula from game manager is " + formula + ", calling parseFormula, visible is " + isVisible());
+        cam = GameObject.FindGameObjectWithTag("MainCamera");
+
+        if (Time.frameCount>100 && _manager.camPosition != null && cam != null) {
+            cam.transform.position = _manager.camPosition;
+            cam.transform.rotation = _manager.camRotation;
+            p("setting camera transform: " + cam.transform);
+        }
+        else {
+            resetCam();
+
+        }
         this.parseFormula(formula);
         InputField fformula = GameObject.FindGameObjectWithTag("FormulaField").GetComponent<InputField>();
         fformula.text = formula;
@@ -381,6 +411,7 @@ public class SpinLabScript : MonoBehaviour
     void Start() {
         p("******** Start **********");
         if (_manager == null) Awake();
+        
         deltaRadius = bigRadius - smallRadius;
         rings = (int)(deltaRadius / distBetweenPoints);
         if (sequence == null) parseFormula(DEFAULT_FORMULA);
@@ -591,7 +622,7 @@ public class SpinLabScript : MonoBehaviour
             }
         }
 
-        p("Grid points created");
+     //   p("Grid points created");
     }
     private void createPoint(int minGrid, Color c, int i, int j, int k) {
         float x = minGrid + i * distBetweenPoints;
@@ -862,7 +893,7 @@ public class SpinLabScript : MonoBehaviour
         lr.SetPosition(0, a); //x,y and z position of the starting point of the line
         lr.SetPosition(1, b);
 
-        if (_manager.colorLines==true) checkColorOfLine(lr, 0);
+        if (_manager.colorLines==true) checkColorOfLine(lr, 0,0, 0, 0, -1);
 
 
         return lr;
@@ -882,7 +913,7 @@ public class SpinLabScript : MonoBehaviour
         }
         return new Color(r, g, b, t);
     }
-    private void checkColorOfLine(LineRenderer lr, int axis) {
+    private void checkColorOfLine(LineRenderer lr, int axis, int i, int j, int k, int which) {
         // in the right sphere, make half the line transparent
         // actually better would be to connect the line
         // to the opposite side
@@ -890,36 +921,85 @@ public class SpinLabScript : MonoBehaviour
         Vector3 a = lr.GetPosition(0);
         Vector3 b = lr.GetPosition(1);
         Color tra = new Color(0, 0, 0, 0);
-
+        Color ca = Color.white;
+        Color cb = Color.white;
         float xa = a.x;
         float xb = b.x;
-
+        bool changeColor = false;
         float t = 1.0f;
-        float r1 = Vector3.Distance(a, this.spherePosition) / 5.0f;
-        float r2 = Vector3.Distance(a, this.otherSpherePosition) / 5.0f;
+        if (colorMode == colorByAxis) {
+            if (axis == 0) { // hor plane, color if z stays same
+                if (k == this.nrGridPointsPerAxis[2] / 2 && which == 0) {
+                    ca = Color.blue;
+                    cb = Color.blue;
+                    changeColor = true;
+                }
+                else if (i == gridxleft && which == 1) {
+                    ca = Color.magenta;
+                    cb = Color.magenta;
+                    changeColor = true;
 
-        float r = Mathf.Max(0, Mathf.Min(r1, r2) / _manager.particleInfluence - 2.0f);
-        t = 1.0f / (1.0f + r * r);
+                }
+            }
 
-        Color ca = Color.black;
-        Color cb = Color.black;
-        if (axis == 0) {
-            // up: red 1, 0.5, 0.5
-            // down: blue, 0.5, 0.5, 1
-            ca = getColorValue(a.y, t);
-           // ca = new Color(1.0f, 1.0f, 1.0f, t);
-            cb = getColorValue(b.y, t);
+            else if (axis == 1) {
+                if (k == this.nrGridPointsPerAxis[2] / 2 && which == 0) {
+                    ca = Color.red;
+                    cb = Color.red;
+                    changeColor = true;
+                }
+                else if (i == gridxleft && which == 1) {
+                    ca = new Color(1, 1, 0);
+                    cb = new Color(1, 1, 0);
+                    changeColor = true;
+
+                }
+            }
+            else {
+                if (k == this.nrGridPointsPerAxis[0] / 2 && which == 0) {
+                    ca = Color.blue;
+                    cb = Color.blue;
+                    changeColor = true;
+                }
+                else if (i == this.gridxleft && which == 1) {
+                    ca = Color.red;
+                    cb = Color.red;
+                    changeColor = true;
+
+                }
+            }
         }
-        else if (axis == 1) {
-            ca = new Color(1.0f, 1.0f, 0.0f, t);
-            cb = new Color(1.0f, 1.0f, 0.0f, t);
+        if (colorMode == colorByY) {
+            float r1 = Vector3.Distance(a, this.spherePosition) / 5.0f;
+            float r2 = Vector3.Distance(a, this.otherSpherePosition) / 5.0f;
+
+            float r = Mathf.Max(0, Mathf.Min(r1, r2) / _manager.particleInfluence - 2.0f);
+            t = 1.0f / (1.0f + r * r);
+
+           
+            if (axis == 0) {
+                // up: red 1, 0.5, 0.5
+                // down: blue, 0.5, 0.5, 1
+                ca = getColorValue(a.y, t);
+                // ca = new Color(1.0f, 1.0f, 1.0f, t);
+                cb = getColorValue(b.y, t);
+                changeColor = true;
+            }
+            else if (axis == 1) {
+                ca = new Color(1.0f, 1.0f, 0.0f, t);
+                cb = new Color(1.0f, 1.0f, 0.0f, t);
+                changeColor = true;
+            }
+            else {
+                ca = new Color(1.0f, 0.5f, 0.0f, t);
+                cb = new Color(1.0f, 0.5f, 0.0f, t);
+                changeColor = true;
+            }
         }
-        else {
-            ca = new Color(1.0f, 0.5f, 0.0f, t);
-            cb = new Color(1.0f, 0.5f, 0.0f, t);
+        if (changeColor == true ) {
+            lr.startColor = ca;
+            lr.endColor = cb;
         }
-        lr.startColor = ca;
-        lr.endColor = cb;
         if (!leftSide) {
             // RIGHT side            
             lr.startColor = tra;
@@ -935,6 +1015,9 @@ public class SpinLabScript : MonoBehaviour
 
     public void refresh(string nada) {
         p("***** refresh *****");
+        _manager.camPosition = cam.transform.position;
+        _manager.camRotation = cam.transform.rotation;
+        p("Setting manager.cameraTransform to " + cam.transform);
         Slider aslider = GameObject.FindGameObjectWithTag("AngleSlider").GetComponent<Slider>();
         Slider sslider = GameObject.FindGameObjectWithTag("SpeedSlider").GetComponent<Slider>();
         Slider xslider = GameObject.FindGameObjectWithTag("AxisSlider").GetComponent<Slider>();
@@ -990,7 +1073,9 @@ public class SpinLabScript : MonoBehaviour
     }
     private void restartScene() {
         p(" ************* restarting scene ***********");
+      
         Scene scene = SceneManager.GetActiveScene();
+
         restartMarkers();
         SceneManager.LoadScene(scene.name);
     }
@@ -1039,7 +1124,7 @@ public class SpinLabScript : MonoBehaviour
         }
         if (end != Vector3.zero) {
             updateOneGridLine(lr, start, end);
-            if (_manager.colorLines==true) this.checkColorOfLine(lr, ax);
+            if (_manager.colorLines==true) this.checkColorOfLine(lr, ax, i, j, k, which);
         }
         //     else p("There was no end point");
     }
@@ -1109,7 +1194,7 @@ public class SpinLabScript : MonoBehaviour
                                 // give it the coordinate of the OTHER point
                                 // w is on the OPPOSITE side
                                 int otherw = (w + nrpointsPerRing / 2) % nrpointsPerRing;
-                                checkColorOfLine(lr, ax);
+                                checkColorOfLine(lr, ax, 0,0,0,-1);
                             }
                         }
 
@@ -1130,7 +1215,7 @@ public class SpinLabScript : MonoBehaviour
                             if (r > 1) {
                                 // these lines are along the sphere
                                 // the inner shell(s) will never overlap, so just check the outer ones
-                                checkColorOfLine(lr, ax);
+                                checkColorOfLine(lr, ax,0, 0, 0, -1);
                             }
                             // these are the circular lines
                             if (lr != null) {
@@ -1176,9 +1261,11 @@ public class SpinLabScript : MonoBehaviour
         if (leftSide) _manager.speed = speed;
 
         //  markerScript.markerCount = (int)(150 / speed);
-        markerScript.frameDelta = Mathf.Max(1,(int)(5 / speed));
-        markerScript.restart();
-
+        if (markerScript != null) {
+            markerScript.frameDelta = Mathf.Max(1, (int)(5 / speed));
+             markerScript.restart();
+        }
+        else if (this.leftSide) p("There is no marker script");
         at.text = "Speed " + (int)aslider.value;
 
 
@@ -1204,12 +1291,15 @@ public class SpinLabScript : MonoBehaviour
         at.text = "Grid Size " + (int)aslider.value;
     }
     private void restartMarkers() {
-       //s markerScript.visible = (this.leftSide );
-        if (this.leftSide) markerScript.restart();
-        
+        //s markerScript.visible = (this.leftSide );
+        if (markerScript != null) {
+            markerScript.restart();
+
+        }
+        else if (this.leftSide) p("There is no marker script");
     }
     public void selectionChanged(int change) {
-        p("selectionChanged: change=" + change);
+        //p("selectionChanged: change=" + change);
         Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
         if (preselect == null) {
             p("Could not find dropdown");
@@ -1217,7 +1307,7 @@ public class SpinLabScript : MonoBehaviour
         }
 
         int which = preselect.value;
-        p("selectionChanged: " + which);
+        //p("selectionChanged: " + which);
         _manager.preselect = which;
         if (which == 0) _manager.setSimpleTwist();
         else if (which == 1) _manager.setSimpleCompression();
