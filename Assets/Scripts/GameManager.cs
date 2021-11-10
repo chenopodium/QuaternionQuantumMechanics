@@ -145,6 +145,7 @@ public class GameManager : MonoBehaviour
         gridSize = 3;
         spinMode = 1;
         showSecondGroup = false;
+        preselect = 0;
         kernelAngle = 45;
         formula = "x";
         nrAxis = 1;
@@ -163,7 +164,8 @@ public class GameManager : MonoBehaviour
             showSecondGroup = false;
             kernelAngle = 0;
             formula = "x";
-            nrAxis = 1;
+        preselect = 1;
+        nrAxis = 1;
             showLines = true;
             colorLines = false;
             flipSecond = false;
@@ -177,6 +179,7 @@ public class GameManager : MonoBehaviour
         gridSize = 3;
         spinMode = 1;
         showSecondGroup = false;
+        preselect = 5;
         kernelAngle = 45;
         formula = "xy";
         nrAxis = 1;
@@ -195,6 +198,7 @@ public class GameManager : MonoBehaviour
         showSecondGroup = false;
         kernelAngle = 45;
         formula = "<x>";
+        preselect = 2;
         nrAxis = 1;
         showLines = true;
         colorLines = false;
@@ -208,7 +212,8 @@ public class GameManager : MonoBehaviour
         speed = 5;
         gridSize = 3;
         spinMode = 1;
-        preselect = 4;
+        preselect = 3;
+        if (second) preselect = 6;
         showSecondGroup = second;
         kernelAngle = 180;
         formula = "<x>";
@@ -218,6 +223,25 @@ public class GameManager : MonoBehaviour
         flipSecond = false;
         particleInfluence = 0.5f;
         p("setComplexSpin");
+   
+    }
+    public void setComplexSpinMax(bool second) {
+        Reset();
+        useCompression = false;
+        speed = 7;
+        gridSize = 6;
+        spinMode = 1;
+        preselect = 7;
+        if (second) preselect = 8;
+        showSecondGroup = second;
+        kernelAngle = 180;
+        formula = "<x>";
+        nrAxis = 1;
+        showLines = true;
+        colorLines = false;
+        flipSecond = false;
+        particleInfluence = 1.0f;
+        p("setComplexSpinMax");
     }
     public void Init() {
         Reset();

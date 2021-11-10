@@ -1218,13 +1218,16 @@ public class SpinLabScript : MonoBehaviour
 
         int which = preselect.value;
         p("selectionChanged: " + which);
+        _manager.preselect = which;
         if (which == 0) _manager.setSimpleTwist();
         else if (which == 1) _manager.setSimpleCompression();
         else if (which == 2) _manager.setSimpleSpin();
         else if (which == 3) _manager.setComplexSpin(false);
         else if (which == 5) _manager.setDoubleTwist();
         else if (which == 6) _manager.setComplexSpin(true);
-        _manager.preselect = which;
+        else if (which == 7) _manager.setComplexSpinMax(false);
+        else if (which == 8) _manager.setComplexSpinMax(true);
+      
         p("Manager preselect is now: " + which);
         updateUiFromManagerValues();
         this.refresh("");

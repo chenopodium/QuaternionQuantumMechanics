@@ -27,8 +27,8 @@ public class MarkerPath : MonoBehaviour
         arrow = Instantiate(arrowPrefab, transform.position, arrowRotation);
         GameObject onemarker = Instantiate(marker, transform.position, Quaternion.identity);
         mat = onemarker.GetComponent<Renderer>().material;
-       
-       // p("arrow material: " + arrow.GetComponent<Renderer>().material);
+        mat.SetColor("_Color", Color.red);
+        // p("arrow material: " + arrow.GetComponent<Renderer>().material);
         arrow.transform.localScale *= 0.2f;
       
         Material arrowMat = arrow.GetComponent<MeshRenderer>().material;
