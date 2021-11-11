@@ -111,7 +111,7 @@ public class MarkerPath : MonoBehaviour
     void Update()
     {
         if (!visible) return;
-        if (Time.frameCount>0 && Time.frameCount % frameDelta == 0) {
+        if (Time.frameCount % frameDelta == 0) {
            
           //  p("Updating marker pos " + count);
             GameObject m = markers[count];

@@ -16,10 +16,10 @@ public class SpinLabScript : MonoBehaviour
     public MarkerPath markerScript;
 
     public Texture m_MainTexture, m_Normal, m_Metal;
-
-    private bool useGridLines = true;
     // ======================== PRIVATE ==========================
 
+    private bool useGridLines = true;
+   
     private GameObject cam;
     private int[] nrGridPointsPerAxis = new int[3];
     // ======================== SHELLS ==========================
@@ -40,6 +40,7 @@ public class SpinLabScript : MonoBehaviour
     public GameObject pointPrefab;
     public GameObject spherePrefab;
     public GameObject otherSphere;
+    public Material fieldMaterial;
 
     private bool started;
 
@@ -401,6 +402,9 @@ public class SpinLabScript : MonoBehaviour
         Toggle tsphere = GameObject.Find("ShowSphere").GetComponent<Toggle>();
         tsphere.isOn = (_manager.showSphere);
 
+        Toggle tpoints = GameObject.Find("ShowPoints").GetComponent<Toggle>();
+        tpoints.isOn = (_manager.showPoints);
+
         GameObject oflip = GameObject.FindGameObjectWithTag("ToggleFlip");
         if (oflip != null) {
             Toggle tflip = oflip.GetComponent<Toggle>();
@@ -589,37 +593,49 @@ public class SpinLabScript : MonoBehaviour
         // just one axis for now, the zx plane, so y - 0
         //p("***** createPoints for direction " + direction+ ", nrGridPointsPerAxis="+ n+"/"+(n/2)+"/"+(n/2)+ ", _manager.particleInfluence="+ _manager.particleInfluence);
 
-        for (int ax = 0; ax < _manager.nrAxis; ax++) {
-            //p("Grid points for axis "+ax);
-            if (ax == 0) {
-                for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
-                    float x = minGrid + i * distBetweenPoints;
-                    if (x == spherePosition.x) this.gridxleft = i;
-                    else if (x == otherSpherePosition.x) this.gridxright = i;
-                    int j = nrGridPointsPerAxis[1] / 2;
-                    for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
-
-                        createPoint(minGrid, c, i, j, k);
-                    }
-
-                }
-            }
-            else if (ax == 1) {
-                int i = gridxleft;
-                if (direction < 0) i = gridxright;
-             //   p("Creating points for axis 1, i is " + i);
+        if (_manager.showPoints) {
+            for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
                 for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
                     for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
                         createPoint(minGrid, c, i, j, k);
                     }
                 }
-
             }
-            else {
-                for (int i = 0; i < n; i++) {
+        }
+        else {
+            for (int ax = 0; ax < _manager.nrAxis; ax++) {
+                //p("Grid points for axis "+ax);
+
+                if (ax == 0) {
+                    for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
+                        float x = minGrid + i * distBetweenPoints;
+                        if (x == spherePosition.x) this.gridxleft = i;
+                        else if (x == otherSpherePosition.x) this.gridxright = i;
+                        int j = nrGridPointsPerAxis[1] / 2;
+                        for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
+
+                            createPoint(minGrid, c, i, j, k);
+                        }
+
+                    }
+                }
+                else if (ax == 1) {
+                    int i = gridxleft;
+                    if (direction < 0) i = gridxright;
+                    //   p("Creating points for axis 1, i is " + i);
                     for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
-                        int k = nrGridPointsPerAxis[2] / 2;
-                        createPoint(minGrid, c, i, j, k);
+                        for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
+                            createPoint(minGrid, c, i, j, k);
+                        }
+                    }
+
+                }
+                else {
+                    for (int i = 0; i < n; i++) {
+                        for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
+                            int k = nrGridPointsPerAxis[2] / 2;
+                            createPoint(minGrid, c, i, j, k);
+                        }
                     }
                 }
             }
@@ -633,10 +649,16 @@ public class SpinLabScript : MonoBehaviour
         float y = minGrid / 2 + j * distBetweenPoints;
         Vector3 v = new Vector3(x, y, z);
         GameObject gpoint = Instantiate(pointPrefab, v, Quaternion.identity);
+
+        if (_manager.showPoints) {
+            if(fieldMaterial != null) gpoint.GetComponent<Renderer>().material = this.fieldMaterial;
+            c = new Color(.3f, .4f, 1, 0.6f);
+            gpoint.transform.localScale *= 3;
+        }
         gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
         points[i, j, k] = gpoint;
 
-        gpoint.GetComponent<Renderer>().enabled = false;
+        gpoint.GetComponent<Renderer>().enabled = this.leftSide &&  _manager.showPoints;
         float r = Vector3.Distance(v, this.spherePosition);
 
         bool debug = false;// (i == 5 && k == 5);
@@ -1030,6 +1052,7 @@ public class SpinLabScript : MonoBehaviour
         Slider pslider = GameObject.FindGameObjectWithTag("ParticleInfluence").GetComponent<Slider>();
 
         Toggle tsphere = GameObject.Find("ShowSphere").GetComponent<Toggle>();
+        Toggle tpoints = GameObject.Find("ShowPoints").GetComponent<Toggle>();
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         Toggle tflip = GameObject.FindGameObjectWithTag("ToggleFlip").GetComponent<Toggle>();
 
@@ -1060,6 +1083,7 @@ public class SpinLabScript : MonoBehaviour
             _manager.colorLines = tcolor.isOn;
             _manager.useCompression = tcomp.isOn;
             _manager.showSphere = tsphere.isOn;
+            _manager.showPoints = tpoints.isOn;
             _manager.showSecondGroup = tgroup.isOn;
             _manager.gridSize = (int)gslider.value;
             _manager.kernelAngle = angle;

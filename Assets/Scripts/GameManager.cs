@@ -152,6 +152,7 @@ public class GameManager : MonoBehaviour
         spinMode = 1;
         showSecondGroup = false;
         preselect = 0;
+        showPoints = true;
         kernelAngle = 45;
         formula = "x";
         nrAxis = 1;
@@ -163,6 +164,7 @@ public class GameManager : MonoBehaviour
     }
    public void setSimpleCompression() {
             Reset();
+        showPoints = true;
             useCompression = true;
             speed = 5;
             gridSize = 3;
