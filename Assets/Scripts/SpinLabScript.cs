@@ -267,7 +267,9 @@ public class SpinLabScript : MonoBehaviour
     }
     private void resetCam() {
         cam = GameObject.FindGameObjectWithTag("MainCamera");
-        cam.transform.position = new Vector3(0, 3, -16);
+        float x = 0;
+        if (_manager.showSecondGroup == false) x = this.spherePosition.x;
+        cam.transform.position = new Vector3(x, 3, -16);
         cam.transform.rotation = Quaternion.Euler(8, 0, 0);
         p("using default cam pos. cam is " + cam.transform.position);
 
@@ -582,7 +584,11 @@ public class SpinLabScript : MonoBehaviour
         int maxGrid = _manager.gridSize * 2;
         int dGrid = -minGrid + maxGrid;
         int n = (int)(dGrid / distBetweenPoints);
-        this.nrGridPointsPerAxis[0] = n;
+
+        if (_manager.showSecondGroup ==false) {
+            this.nrGridPointsPerAxis[0] = n/2;
+        }
+        else  this.nrGridPointsPerAxis[0] = n;
         this.nrGridPointsPerAxis[1] = n / 2;
         this.nrGridPointsPerAxis[2] = n / 2;
 
@@ -595,6 +601,9 @@ public class SpinLabScript : MonoBehaviour
 
         if (_manager.showPoints) {
             for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
+                float x = minGrid + i * distBetweenPoints;
+                if (x == spherePosition.x) this.gridxleft = i;
+                else if (x == otherSpherePosition.x) this.gridxright = i;
                 for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
                     for (int k = 0; k < nrGridPointsPerAxis[2]; k++) {
                         createPoint(minGrid, c, i, j, k);
@@ -641,7 +650,7 @@ public class SpinLabScript : MonoBehaviour
             }
         }
 
-     //   p("Grid points created");
+        p("Grid points created, gridxleft="+gridxleft);
     }
     private void createPoint(int minGrid, Color c, int i, int j, int k) {
         float x = minGrid + i * distBetweenPoints;
@@ -652,10 +661,11 @@ public class SpinLabScript : MonoBehaviour
 
         if (_manager.showPoints) {
             if(fieldMaterial != null) gpoint.GetComponent<Renderer>().material = this.fieldMaterial;
-            c = new Color(.3f, .4f, 1, 0.6f);
-            gpoint.transform.localScale *= 3;
+            c = new Color(.2f, 1.0f, 0.2f, 0.5f);
+            gpoint.transform.localScale *= 4;
+            gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
         }
-        gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
+        else gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
         points[i, j, k] = gpoint;
 
         gpoint.GetComponent<Renderer>().enabled = this.leftSide &&  _manager.showPoints;
@@ -981,7 +991,7 @@ public class SpinLabScript : MonoBehaviour
                 }
             }
             else {
-                if (k == this.nrGridPointsPerAxis[0] / 2 && which == 0) {
+                if (k == this.nrGridPointsPerAxis[2] /2 && which == 0) {
                     ca = Color.blue;
                     cb = Color.blue;
                     changeColor = true;
