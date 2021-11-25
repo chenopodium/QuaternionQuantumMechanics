@@ -45,6 +45,9 @@ public class GameManager : MonoBehaviour
     public int preselect;
 
     [SerializeField]
+    public int colorBy;
+
+    [SerializeField]
     public bool rotate;
 
     [SerializeField]
@@ -127,12 +130,13 @@ public class GameManager : MonoBehaviour
     }
     public void Reset() {
         kernelAngle = 45;
+        colorBy = 0;
         rotate = true;
         showSphere = false;
         showLines = true;
         showPoints = false;
         flipSecond = false;
-        gridSize = 3;
+        gridSize = 4;
         colorLines = true;
         spinMode = 1;
         particleInfluence = 0.5f;
@@ -140,7 +144,7 @@ public class GameManager : MonoBehaviour
         showSecondGroup = false;
         speed = 3.0f;
         compressionSpeed = 2.0f;
-        compressionMagnitude = 0.8f;
+        compressionMagnitude = 0.5f;
         nrAxis = 1;
         formula = "<x>";
     }
@@ -157,7 +161,7 @@ public class GameManager : MonoBehaviour
         formula = "x";
         nrAxis = 1;
         showLines = true;
-        colorLines = false;
+        colorLines = true;
         flipSecond = false;
         particleInfluence = 0.5f;
         p("Set simple twist");
@@ -175,7 +179,7 @@ public class GameManager : MonoBehaviour
         preselect = 1;
         nrAxis = 1;
             showLines = true;
-            colorLines = false;
+            colorLines = true;
             flipSecond = false;
             particleInfluence = 0.5f;
          p("Set setSimpleCompression");
@@ -192,7 +196,7 @@ public class GameManager : MonoBehaviour
         formula = "xy";
         nrAxis = 1;
         showLines = true;
-        colorLines = false;
+        colorLines = true;
         flipSecond = false;
         particleInfluence = 0.5f;
         p("Set setDoubleTwist");
@@ -209,7 +213,7 @@ public class GameManager : MonoBehaviour
         preselect = 2;
         nrAxis = 1;
         showLines = true;
-        colorLines = false;
+        colorLines = true;
         flipSecond = false;
         particleInfluence = 0.5f;
         p("setSimpleSpin");
@@ -227,7 +231,7 @@ public class GameManager : MonoBehaviour
         formula = "<x>";
         nrAxis = 1;
         showLines = true;
-        colorLines = false;
+        colorLines = true;
         flipSecond = false;
         particleInfluence = 0.5f;
         p("setComplexSpin");
@@ -246,7 +250,7 @@ public class GameManager : MonoBehaviour
         formula = "<x>";
         nrAxis = 1;
         showLines = true;
-        colorLines = false;
+        colorLines = true;
         flipSecond = false;
         particleInfluence = 1.0f;
         p("setComplexSpinMax");

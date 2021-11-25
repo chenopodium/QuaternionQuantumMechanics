@@ -14,6 +14,7 @@ public class SpinLabScript : MonoBehaviour
     public Transform sphere;
     public Transform spheregroup;
     public MarkerPath markerScript;
+    public GameObject arrowPrefab;
 
     public Texture m_MainTexture, m_Normal, m_Metal;
     // ======================== PRIVATE ==========================
@@ -29,6 +30,7 @@ public class SpinLabScript : MonoBehaviour
 
     //public int nrAxis = 2;
     private GameObject[,,] points;
+    private Vector3[,,] origpoints;
 
     private GameObject[,,] otherpoints;
     private GameObject centerpoint;
@@ -48,12 +50,12 @@ public class SpinLabScript : MonoBehaviour
     private float bigRadius = 5f;
     private float smallRadius = 0.5f;
     private float deltaRadius;
-    private float distBetweenPoints = 0.25f;
+    private float distBetweenPoint = 0.25f;
     private float dalpha = 10f;
     private int gridxleft;
     private int gridxright;
     private int nrpointsPerRing;
-    private float compressionMagnitude = 0.9f;
+    private float compressionMagnitude = 0.5f;
     private int rings;
     private int spinMode;
     private GameManager _manager;
@@ -75,10 +77,14 @@ public class SpinLabScript : MonoBehaviour
     private GameObject canvas;
 
     private int colorMode = 0;
-    private static int colorByY = 1;
-    private static int colorByStrain = 2;
     private static int colorByAxis = 0;
+    private static int colorByStrain = 1;
+    private static int colorByTwist = 2;
+    private static int colorByCompression = 3;
+    private static int colorByY = 4;
 
+    private Gradient gradient;
+   
     // =================== SHELL CACHE ===================
     private Dictionary<(float, float, int), Quaternion> shellCache = new Dictionary<(float, float, int), Quaternion>();
     private Dictionary<(Vector3, Vector3, int), Vector3> midCache = new Dictionary<(Vector3, Vector3, int), Vector3>();
@@ -215,11 +221,11 @@ public class SpinLabScript : MonoBehaviour
     }
 
     private void createShells() {
-        rings = (int)((bigRadius - smallRadius) / distBetweenPoints);
+        rings = (int)((bigRadius - smallRadius) / distBetweenPoint);
 
         shellMap = new Dictionary<float, Shell>();
 
-        for (float r = smallRadius; r <= bigRadius; r += distBetweenPoints) {
+        for (float r = smallRadius; r <= bigRadius; r += distBetweenPoint) {
             GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
             Shell shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence);
             shellMap.Add(r, shell);
@@ -317,9 +323,25 @@ public class SpinLabScript : MonoBehaviour
                 p("Second side is flipped");
             }
         }
-      
-       
 
+
+        gradient = new Gradient();
+
+        // Populate the color keys at the relative time 0 and 1 (0 and 100%)
+        GradientColorKey[] colorKey = new GradientColorKey[2];
+        colorKey[0].color = Color.blue;
+        colorKey[0].time = 0.0f;
+        colorKey[1].color = Color.red;
+        colorKey[1].time = 1.0f;
+
+        // Populate the alpha  keys at relative time 0 and 1  (0 and 100%)
+        GradientAlphaKey[] alphaKey = new GradientAlphaKey[2];
+        alphaKey[0].alpha = 1.0f;
+        alphaKey[0].time = 0.0f;
+        alphaKey[1].alpha = 1.0f;
+        alphaKey[1].time = 1.0f;
+
+        gradient.SetKeys(colorKey, alphaKey);
         updateUiFromManagerValues();
         checkVisibility();
         //p("awake: setting speed to " + speed + " and angle to " + nrAxis + ", axis is " + nrAxis+", formula "+formula+ "< _manager.particleInfluence="+ _manager.particleInfluence);
@@ -391,6 +413,13 @@ public class SpinLabScript : MonoBehaviour
             p("Could not get dropwidn: " + e);
         }
 
+        try {
+            Dropdown drop = GameObject.Find("ColorDrop").GetComponent<Dropdown>();
+            drop.value = (_manager.colorBy);
+        }
+        catch (Exception e) {
+            p("Could not get dropwidn: " + e);
+        }
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         tgroup.isOn = (_manager.showSecondGroup);
 
@@ -420,7 +449,7 @@ public class SpinLabScript : MonoBehaviour
         if (_manager == null) Awake();
         
         deltaRadius = bigRadius - smallRadius;
-        rings = (int)(deltaRadius / distBetweenPoints);
+        rings = (int)(deltaRadius / distBetweenPoint);
         if (sequence == null) parseFormula(DEFAULT_FORMULA);
         createShells();
         if (useGridLines) {
@@ -508,6 +537,34 @@ public class SpinLabScript : MonoBehaviour
             p("getOtherPoints: there are NO OTHER points on the other sphere " + otherSphere);
         }
     }
+    private Quaternion computeMidTwist(int ax, int i, int j, int k, bool debug) {
+        //  if (debug) p("computeMidPoint: point " + i + " / " + j + " / " + k);
+        if (getPoint(i, j, k, debug) == null) {
+            if (debug) p("computeMidTwist: point " + i + "/" + j + "/" + k + " does not exist, it is null");
+            return Quaternion.identity;
+        }
+
+
+        Quaternion a = points[i, j, k].transform.rotation;
+        if (_manager.showSecondGroup == false) {
+            //   if (debug) p("****************************** second Group NOT showing, NOT computing average ");
+            return a;
+        }
+        if (otherpoints == null) this.getOtherPoints();
+        if (otherpoints == null) {
+            //    p("computeMidPoint: there are NO OTHER points");
+            return Quaternion.identity;
+        }
+
+        if (otherpoints[i, j, k] == null) {
+            //  if (debug)p("computeMidPoint: otherpoint " + i + "/" + j + "/" + k + " does not exist");
+            return Quaternion.identity;
+        }
+
+        Quaternion b = otherpoints[i, j, k].transform.rotation;
+        //return computeMidPoint(ax, a, b, debug);
+        return a;
+    }
     private Vector3 computeMidPoint(int ax, int i, int j, int k, bool debug) {
         //  if (debug) p("computeMidPoint: point " + i + " / " + j + " / " + k);
         if (getPoint(i, j, k, debug) == null) {
@@ -583,7 +640,7 @@ public class SpinLabScript : MonoBehaviour
         int minGrid = -_manager.gridSize * 2;
         int maxGrid = _manager.gridSize * 2;
         int dGrid = -minGrid + maxGrid;
-        int n = (int)(dGrid / distBetweenPoints);
+        int n = (int)(dGrid / distBetweenPoint);
 
         if (_manager.showSecondGroup ==false) {
             this.nrGridPointsPerAxis[0] = n/2;
@@ -594,6 +651,7 @@ public class SpinLabScript : MonoBehaviour
 
 
         points = new GameObject[n + 1, n / 2 + 1, n / 2 + 1];
+        origpoints = new Vector3[n + 1, n / 2 + 1, n / 2 + 1];
         Color c = Color.blue;
         if (this.leftSide) c = Color.red;
         // just one axis for now, the zx plane, so y - 0
@@ -601,7 +659,7 @@ public class SpinLabScript : MonoBehaviour
 
         if (_manager.showPoints) {
             for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
-                float x = minGrid + i * distBetweenPoints;
+                float x = minGrid + i * distBetweenPoint;
                 if (x == spherePosition.x) this.gridxleft = i;
                 else if (x == otherSpherePosition.x) this.gridxright = i;
                 for (int j = 0; j < nrGridPointsPerAxis[1]; j++) {
@@ -617,7 +675,7 @@ public class SpinLabScript : MonoBehaviour
 
                 if (ax == 0) {
                     for (int i = 0; i < nrGridPointsPerAxis[0]; i++) {
-                        float x = minGrid + i * distBetweenPoints;
+                        float x = minGrid + i * distBetweenPoint;
                         if (x == spherePosition.x) this.gridxleft = i;
                         else if (x == otherSpherePosition.x) this.gridxright = i;
                         int j = nrGridPointsPerAxis[1] / 2;
@@ -653,12 +711,17 @@ public class SpinLabScript : MonoBehaviour
         p("Grid points created, gridxleft="+gridxleft);
     }
     private void createPoint(int minGrid, Color c, int i, int j, int k) {
-        float x = minGrid + i * distBetweenPoints;
-        float z = minGrid / 2 + k * distBetweenPoints;
-        float y = minGrid / 2 + j * distBetweenPoints;
+        float x = minGrid + i * distBetweenPoint;
+        float z = minGrid / 2 + k * distBetweenPoint;
+        float y = minGrid / 2 + j * distBetweenPoint;
         Vector3 v = new Vector3(x, y, z);
-        GameObject gpoint = Instantiate(pointPrefab, v, Quaternion.identity);
-
+        GameObject gpoint = null;
+        //if (this.colorMode != colorByTwist || arrowPrefab == null || !this.leftSide)
+            gpoint = Instantiate(pointPrefab, v, Quaternion.identity);
+       // else {
+       //     gpoint = Instantiate(arrowPrefab, v, Quaternion.identity);
+       //     gpoint.transform.localScale *= 0.3f;
+      // }
         if (_manager.showPoints) {
             if(fieldMaterial != null) gpoint.GetComponent<Renderer>().material = this.fieldMaterial;
             c = new Color(.2f, 1.0f, 0.2f, 0.5f);
@@ -667,8 +730,10 @@ public class SpinLabScript : MonoBehaviour
         }
         else gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
         points[i, j, k] = gpoint;
-
+        Vector3 vec = gpoint.transform.position;
+        origpoints[i, j, k] = new Vector3(vec.x, vec.y, vec.z);
         gpoint.GetComponent<Renderer>().enabled = this.leftSide &&  _manager.showPoints;
+
         float r = Vector3.Distance(v, this.spherePosition);
 
         bool debug = false;// (i == 5 && k == 5);
@@ -698,7 +763,7 @@ public class SpinLabScript : MonoBehaviour
         for (int ax = 0; ax < _manager.nrAxis; ax++) {
 
             int ring = 0;
-            for (float r = smallRadius; r < bigRadius; r += distBetweenPoints) {
+            for (float r = smallRadius; r < bigRadius; r += distBetweenPoint) {
 
                 int which = 0;
                 for (float alpha = 0; alpha <= 360; alpha += dalpha) {
@@ -948,10 +1013,15 @@ public class SpinLabScript : MonoBehaviour
         }
         return new Color(r, g, b, t);
     }
+    public void Resize(Transform g, float amount, Vector3 direction) {
+       // g.position += direction * amount / 2; // Move the object in the direction of scaling, so that the corner on ther side stays in place
+        g.localScale = direction * amount; // Scale object in the specified direction
+    }
     private void checkColorOfLine(LineRenderer lr, int axis, int i, int j, int k, int which) {
         // in the right sphere, make half the line transparent
         // actually better would be to connect the line
         // to the opposite side
+        colorMode = _manager.colorBy;
         // and should happen in each update
         Vector3 a = lr.GetPosition(0);
         Vector3 b = lr.GetPosition(1);
@@ -962,6 +1032,7 @@ public class SpinLabScript : MonoBehaviour
         float xb = b.x;
         bool changeColor = false;
         float t = 1.0f;
+       // if (Time.frameCount % 10 == 0) p("Color by is " + colorMode);
         if (colorMode == colorByAxis) {
             if (axis == 0) { // hor plane, color if z stays same
                 if (k == this.nrGridPointsPerAxis[2] / 2 && which == 0) {
@@ -1004,7 +1075,73 @@ public class SpinLabScript : MonoBehaviour
                 }
             }
         }
-        if (colorMode == colorByY) {
+        else if (colorMode == colorByStrain) { // rot plus comp
+            float d = (Vector3.Distance(a, b) - distBetweenPoint) / distBetweenPoint * 10f;
+          //  if (Time.frameCount % 10 == 0) p("colorByCompression. d=" + d);
+            if (d > 0) {
+                d = Mathf.Min(1.0f, d);
+                ca = new Color(1.0f, 1.0f - d, 1.0f - d);
+            }
+            else {
+                d = Mathf.Min(1.0f, -d);
+                ca = new Color(1.0f - d, 1.0f - d, d);
+
+
+            }
+            cb = ca;
+            changeColor = true;
+        }
+        else if (colorMode == colorByTwist) { // diff of rotation
+            if (points[i, j, k] == null) return;
+            GameObject gpoint = points[i,j,k];
+            Vector3 orig = origpoints[i, j, k] - this.spherePosition;
+            Vector3 now = gpoint.transform.position - this.spherePosition;
+            //Quaternion qa =Quaternion.FromToRotation(orig, now );
+            Quaternion qa = gpoint.transform.rotation;
+
+            float d = Vector3.AngleBetween(orig, now)*10;
+            //float d = Quaternion.Angle(qa, Quaternion.identity)/360.0f*20f;
+            
+            
+          //  Quaternion.
+            if (Time.frameCount % 50 == 0 &&  i==0) p("colorByTwist. angle=" + d );
+
+           // Resize(gpoint.transform, 1.0f, new Vector3(1f, d*2, 1f));
+            //gpoint.transform.localScale.y = d;
+          //  gpoint.transform.rotation = qa;
+            if (d > 0) {
+                d = Mathf.Min(1.0f, d);
+                //ca = new Color(1.0f, 1.0f - d, 1.0f - d);
+                ca = gradient.Evaluate(d);
+            }
+            else {
+                d = Mathf.Min(1.0f, -d);
+                ca = new Color(1.0f - d, 1.0f - d, d);
+
+            }
+            cb = ca;
+            Material arrowMat = gpoint.GetComponent<MeshRenderer>().material;
+            if (arrowMat != null) arrowMat.SetColor("_Color", ca);
+            gpoint.GetComponent<Renderer>().material.SetColor("_Color", ca);
+            changeColor = true;
+        }
+        else if (colorMode == colorByCompression) { // compression = length - grid length
+            float d = (Vector3.Distance(a, b)- distBetweenPoint )/ distBetweenPoint * 10f;
+            if (Time.frameCount % 10 == 0 && i == 0) p("colorByCompression. d=" +  d);
+            if (d>0) {
+                d = Mathf.Min(1.0f, d);
+                ca = new Color(1.0f, 1.0f - d, 1.0f-d);
+            }
+            else {
+                d = Mathf.Min(1.0f, -d);
+                ca = new Color(1.0f-d, 1.0f-d, 1.0f);
+                
+
+            }
+            cb = ca;
+            changeColor = true;
+        }
+        else if (colorMode == colorByY) {
             float r1 = Vector3.Distance(a, this.spherePosition) / 5.0f;
             float r2 = Vector3.Distance(a, this.otherSpherePosition) / 5.0f;
 
@@ -1067,7 +1204,8 @@ public class SpinLabScript : MonoBehaviour
         Toggle tflip = GameObject.FindGameObjectWithTag("ToggleFlip").GetComponent<Toggle>();
 
         Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
-       
+        Dropdown colordrop = GameObject.Find("ColorDrop").GetComponent<Dropdown>();
+
         Toggle tcolor = GameObject.Find("ColorLines").GetComponent<Toggle>();
 
         Toggle tcomp = GameObject.Find("ToggleCompress").GetComponent<Toggle>();
@@ -1089,6 +1227,7 @@ public class SpinLabScript : MonoBehaviour
         this.parseFormula(formula);
         if (leftSide) {
             _manager.preselect = preselect.value;
+            _manager.colorBy = colordrop.value;
             _manager.flipSecond = tflip.isOn;
             _manager.colorLines = tcolor.isOn;
             _manager.useCompression = tcomp.isOn;
@@ -1334,6 +1473,20 @@ public class SpinLabScript : MonoBehaviour
 
         }
         else if (this.leftSide) p("There is no marker script");
+    }
+    public void colorChange(int change) {
+         p("colorChange: change=" + change);
+        Dropdown preselect = GameObject.Find("ColorDrop").GetComponent<Dropdown>();
+        if (preselect == null) {
+            p("Could not find dropdown ColorDrop");
+            return;
+        }
+        int which = preselect.value;
+        this.colorMode = which;
+        _manager.colorBy = which;
+        p("===================== colorBy = " + colorMode);
+        updateUiFromManagerValues();
+        this.refresh("");
     }
     public void selectionChanged(int change) {
         //p("selectionChanged: change=" + change);
