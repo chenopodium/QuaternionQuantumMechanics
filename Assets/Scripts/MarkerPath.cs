@@ -17,6 +17,7 @@ public class MarkerPath : MonoBehaviour
     private GameObject arrow;
 
     private Material mat;
+    public Color pointColor;
     // Start is called before the first frame update
     void Start()
     {
@@ -27,12 +28,14 @@ public class MarkerPath : MonoBehaviour
         arrow = Instantiate(arrowPrefab, transform.position, arrowRotation);
         GameObject onemarker = Instantiate(marker, transform.position, Quaternion.identity);
         mat = onemarker.GetComponent<Renderer>().material;
-        mat.SetColor("_Color", Color.red);
+
+        if (pointColor == null) pointColor = Color.red;
+        mat.SetColor("_Color", pointColor);
         // p("arrow material: " + arrow.GetComponent<Renderer>().material);
         arrow.transform.localScale *= 0.2f;
       
         Material arrowMat = arrow.GetComponent<MeshRenderer>().material;
-        arrowMat.SetColor("_Color", Color.red);
+        arrowMat.SetColor("_Color", pointColor);
         //  p("arrow color. " + arrow.GetComponent<Renderer>().material.color);
         create(); 
 
@@ -58,12 +61,13 @@ public class MarkerPath : MonoBehaviour
         // p("About to create markers");
         markers = new GameObject[markerCount];
         lines = new LineRenderer[markerCount];
-
+        if (pointColor == null) pointColor = Color.red;
         for (int i = 0; i < markerCount; i++) {
             //     p("Creating markar " + i);
             GameObject m = Instantiate(marker, transform.position, Quaternion.identity);
             markers[i] = m;
-            m.GetComponent<Renderer>().material.SetColor("_Color", Color.red);
+           
+            m.GetComponent<Renderer>().material.SetColor("_Color", pointColor);
             if (i > 0) {
                 LineRenderer lr = addLine(Color.red, markers[i - 1].transform.position, m.transform.position);
                 lines[i] = lr;

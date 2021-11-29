@@ -21,21 +21,25 @@ public class Shell
             shells[nr] = shell.transform;           
             shellScales[nr] = new Vector3(2 * r, 2 * r, 2 * r);
 	*/
-	public Shell(float r, float minRadius, float maxRadius,  GameObject shellObject, float pInfluence) {
+	public Shell(float r, float minRadius, float maxRadius,  GameObject shellObject, float pInfluence, bool wave) {
 		scale =  new Vector3( r,  r,  r);
 		this.radius = r;
 		this.minRadius = minRadius;
 		this.maxRadius = maxRadius;
-		//float delta = maxRadius - minRadius;
+		float delta = maxRadius - minRadius;
 		this.shell = shellObject;
 		this.fraction = (float)Math.Min(1.0, Math.Max(0, (maxRadius - r) / maxRadius));
 		// minRadius should be 1
 		float dr = r - minRadius;
 		float f = 0.25f / pInfluence;
-		this.fraction = 1.0f / (1.0f + dr * dr* f);
+		if(wave)this.fraction = 1.0f /(1.0f + dr * dr* f);
+        else {
+			 this.fraction = 1.0f /(1.0f +  dr*dr*f);
+			//this.fraction = Mathf.Cos(dr/ delta*1.0f)* 1.0f / (1.0f + dr *dr* f);
+		}
 		Vector3 sc = new Vector3( r,  r,  r);
 		shell.transform.localScale = sc;
-	//	p("Fraction of shell  r=" + r + " is " + fraction + ", min=" + minRadius + ", max=" + maxRadius+ ", pInfluence="+ pInfluence);
+		p("Fraction of shell  r=" + r + " is " + fraction + ", min=" + minRadius + ", max=" + maxRadius+ ", pInfluence="+ pInfluence);
 
 	}
 	private void p(string s) {

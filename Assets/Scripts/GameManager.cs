@@ -13,6 +13,11 @@ public class GameManager : MonoBehaviour
 
     private List<GameListener> listeners;
 
+    [SerializeField]
+    public bool magnet = true;
+
+    [SerializeField]
+    public bool wave=false;
 
     [SerializeField]
     public Vector3 camPosition;
@@ -129,8 +134,10 @@ public class GameManager : MonoBehaviour
         else p("Could not find ParticleInfluenceLabel");
     }
     public void Reset() {
-        kernelAngle = 45;
+        kernelAngle = 10;
         colorBy = 0;
+        wave = false;
+        magnet = true;
         rotate = true;
         showSphere = false;
         showLines = true;
