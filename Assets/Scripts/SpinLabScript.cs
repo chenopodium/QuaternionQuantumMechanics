@@ -51,7 +51,7 @@ public class SpinLabScript : MonoBehaviour
     private float smallRadius = 0.5f;
     private float deltaRadius;
     private float distBetweenPoint = 0.25f;
-    private float dalpha = 10f;
+    private float dalpha = 15f;
     private int gridxleft;
     private int gridxright;
     private int nrpointsPerRing;
@@ -61,11 +61,16 @@ public class SpinLabScript : MonoBehaviour
     private GameManager _manager;
     private bool modeBracket;
 
-    private static int BRA = 0;
-    private static int KET = 1;
+    
+    private static int BRAY = 0;
+    private static int KETY = 1;
     private static int KERNELX = 2;
     private static int KERNELZ = 3;
     private static int KERNELY = 4;
+    private static int BRAZ = 5;
+    private static int KETZ = 6;
+    private static int BRAX =7;
+    private static int KETX = 8;
     private static string DEFAULT_FORMULA = "<x>";
     private int[] sequence;
 
@@ -83,16 +88,30 @@ public class SpinLabScript : MonoBehaviour
     private static int colorByCompression = 3;
     private static int colorByY = 4;
 
+  //  private float userPhase = 0;
     private int pointColorMode = 0;
 
     private int pointColorByLocation = 0;
     private int pointColorByDistance = 1;
     private Gradient gradient;
-   
+    // ===================== particles
+    private Particles particles;
+    private Particle curparticle ;
+
     // =================== SHELL CACHE ===================
     private Dictionary<(float, float, int), Quaternion> shellCache = new Dictionary<(float, float, int), Quaternion>();
     private Dictionary<(Vector3, Vector3, int), Vector3> midCache = new Dictionary<(Vector3, Vector3, int), Vector3>();
     private int formulaKey;
+
+    // ================== STATS ================
+    private float divergence;
+    private float curl;
+    private float strain;
+    private Text txtDiv;
+    private Text txtCurl;
+    private Text txtStrain;
+
+
     private struct shellKey
     {
         float a;
@@ -100,14 +119,34 @@ public class SpinLabScript : MonoBehaviour
         float f;
         
     }
+    private void updateStats() {
+        return;
+        if (txtDiv== null) {
+            txtDiv = GameObject.Find("TextDivergence").GetComponent<Text>();
+            txtCurl = GameObject.Find("TextCurl").GetComponent<Text>();
+            txtStrain = GameObject.Find("TextStrain").GetComponent<Text>();
+        }
+        txtDiv.text = "" + divergence;
+        txtCurl.text = "" + curl;
+        txtStrain.text = "" + strain;
+        strain = 0;
+        divergence = 0;
+        curl = 0;
+
+    }
 
     void Update() {
 
         float dBracketAngle = _manager.speed / 5.0f;
-        
         float bracketAngle = (float)Time.frameCount * dBracketAngle;
-
         float phaseCounter = (float)Time.frameCount * dBracketAngle / 180.0f * Mathf.PI;
+        if (_manager.userPhase) {
+            if (_manager.curUserPhase < 0) _manager.curUserPhase = 0;
+            bracketAngle = _manager.curUserPhase;
+            phaseCounter = _manager.curUserPhase / 180.0f * Mathf.PI;
+        }
+       
+       
         float compressionPhase = Mathf.Sin(phaseCounter);
 
         float angleToCompRatio = (float)spinMode;
@@ -117,6 +156,8 @@ public class SpinLabScript : MonoBehaviour
 
         if (bracketAngle > 360) bracketAngle = bracketAngle % 360;
 
+       // bracketAngle= bracketAngle * direction
+        if (bracketAngle < 5) updateStats();
         if (modeBracket == false) {
             // use sine function instead, throuh phase
              bracketAngle = 45;// bracketAngle * anglePhase;
@@ -147,12 +188,13 @@ public class SpinLabScript : MonoBehaviour
             rotateOneShell(shelltrans, bracketAngle, oneKernelAngle, debug);
             debug = false;
             if (_manager.useCompression) {
-
+                
                 float comp = _manager.kernelAngle / 90.0f;
                 //comp = Math.Max(0, comp);
                 //comp = Math.Min(1.0f, comp);
                 comp = 0.3f;
-                float compressionChange = compressionPhase*comp * (float)direction * flip;
+                float compressionChange = compressionPhase*comp ;
+                if (this.curparticle.AntiMatter) compressionChange *= -1;
                 float oneCompressionChange = compressionChange * fraction;
 
                 if (Time.frameCount % 100 == 0) {
@@ -191,40 +233,64 @@ public class SpinLabScript : MonoBehaviour
             return;
         }
         else if (debug) p("NOT Using cache " + bracketAngle + "/" + oneKernelAngle + "/" + formulaKey);
-        Vector3 bracketVector = new Vector3(0, bracketAngle * direction * flip, 0);
-        Vector3 minusBracketVector = new Vector3(0, -bracketAngle * direction * flip, 0);
-        Vector3 kernelVectorX = new Vector3(oneKernelAngle, 0, 0);
+        // first is always a time based rotation around the y axis
+
+        Vector3 bracketYVector = new Vector3(0, bracketAngle * direction * flip, 0);
+        Vector3 bracketZVector = new Vector3(0, 0, bracketAngle * direction * flip);
+        Vector3 bracketXVector = new Vector3(bracketAngle , 0, 0 );
+
+        // this is always a time based LAST rotation around the y axis in exactly the opposite direction
+        Vector3 minusBracketYVector = new Vector3(0, -bracketAngle * direction * flip, 0);
+        Vector3 minusBracketZVector = new Vector3(0, 0, -bracketAngle * direction * flip);
+        Vector3 minusBracketXVector = new Vector3( -bracketAngle , 0,0);
+
+        // in between we can have *any* combination of rotations around any axis
+        // the angle here is distance based
+        // these vectors define the rotation axis
+        Vector3 kernelVectorX = new Vector3(oneKernelAngle , 0, 0);
         Vector3 kernelVectorY = new Vector3(0, oneKernelAngle * direction * flip, 0);
         Vector3 kernelVectorZ = new Vector3(0, 0, oneKernelAngle * direction * flip);
 
-        Quaternion bracketRotation = Quaternion.Euler(bracketVector);
+        if(this.leftSide == false && Time.frameCount% 100 == 0) {
+            p("Right side, kernelVectorY: " + kernelVectorY);
+        }
+
+        // just creating quaternions out of the rotation axis and angles, that's all 
+        Quaternion bracketYRotation = Quaternion.Euler(bracketYVector);
+        Quaternion bracketZRotation = Quaternion.Euler(bracketZVector);
+        Quaternion bracketXRotation = Quaternion.Euler(bracketXVector);
         Quaternion kernelRotationX = Quaternion.Euler(kernelVectorX);
         Quaternion kernelRotationZ = Quaternion.Euler(kernelVectorZ);
         Quaternion kernelRotationY = Quaternion.Euler(kernelVectorY);
-        Quaternion minusBracketRotation = Quaternion.Euler(minusBracketVector);
+        Quaternion minusBracketYRotation = Quaternion.Euler(minusBracketYVector);
+        Quaternion minusBracketZRotation = Quaternion.Euler(minusBracketZVector); 
+        Quaternion minusBracketXRotation = Quaternion.Euler(minusBracketXVector);
 
-        Quaternion overallRotation = bracketRotation;
+        Quaternion overallRotation =  Quaternion.identity; ;
 
-        int start = 1;
+        int start = 0;
         if (this.modeBracket == false) {
             overallRotation = Quaternion.identity;
-            start = 0;
+          
         }
         if ((_manager == null || _manager.rotate) && oneKernelAngle != 0) {
             for (int i = start; i < sequence.Length; i++) {
                 int which = sequence[i];
 
-                if (which == BRA) overallRotation = overallRotation * bracketRotation;
-                else if (which == KET) overallRotation = overallRotation * minusBracketRotation;
-                else if (which == KERNELX) overallRotation = overallRotation * kernelRotationX;
-                else if (which == KERNELY) overallRotation = overallRotation * kernelRotationY;
-                else if (which == KERNELZ) overallRotation = overallRotation * kernelRotationZ;
-
+                if (which == BRAY) overallRotation *=  bracketYRotation;
+                else if (which == KETY) overallRotation *= minusBracketYRotation;
+                else if (which == KERNELX) overallRotation *=  kernelRotationX;
+                else if (which == KERNELY) overallRotation *=  kernelRotationY;
+                else if (which == KERNELZ) overallRotation *=  kernelRotationZ;
+                else if (which == BRAZ) overallRotation *=  bracketZRotation;
+                else if (which == KETZ) overallRotation *=  minusBracketZRotation;
+                else if (which == BRAX) overallRotation *=  bracketXRotation;
+                else if (which == KETX) overallRotation *=  minusBracketXRotation;
             }
 
         }
         else {
-            overallRotation = bracketRotation * minusBracketRotation;
+            overallRotation = bracketXRotation * minusBracketYRotation;
         }
         shell.rotation = overallRotation;
         shellCache[(bracketAngle, oneKernelAngle, formulaKey)] = overallRotation;
@@ -239,12 +305,71 @@ public class SpinLabScript : MonoBehaviour
         
         for (float r = smallRadius; r <= bigRadius; r += distBetweenPoint) {
             GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
-            Shell shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence,_manager.wave);
+            Shell shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence,_manager.dropoff);
             shellMap.Add(r, shell);
         }
         sphereScale = sphere.localScale;
 
 
+    }
+
+    private void documentation(Transform shell) {
+
+        // this angle changes over TIME (from to 2PI)
+        float bracketAngle =0;
+
+        // this angle changes over DISTANCE (from maximum (user defined) 
+        //in the center to 0 at infinity or some distance away)
+        // example: from 180 degrees, decrease with 1/r^2
+        float oneKernelAngle =0; 
+        // the angles are computed.... not shown here..
+
+        // first is always a time based rotation around the y axis
+        Vector3 bracketVector = new Vector3(0, bracketAngle , 0);
+        Vector3 bracketWVector = new Vector3(0, 0, bracketAngle);
+
+        // this is always a time based LAST rotation around the y axis in exactly the opposite direction
+        Vector3 minusBracketVector = new Vector3(0, -bracketAngle, 0);
+        Vector3 minusBracketWVector = new Vector3(0,  0, -bracketAngle);
+
+        // in between we can have *any* combination of rotations around any axis
+        // the angle here is distance based
+        // these vectors define the rotation axis
+        Vector3 kernelVectorX = new Vector3(oneKernelAngle, 0, 0);
+        Vector3 kernelVectorY = new Vector3(0, oneKernelAngle, 0);
+        Vector3 kernelVectorZ = new Vector3(0, 0, oneKernelAngle);
+
+        // just creating quaternions out of the rotation axis and angles, that's all 
+        Quaternion bracketRotation = Quaternion.Euler(bracketVector);
+        Quaternion bracketWRotation = Quaternion.Euler(bracketWVector);
+        Quaternion kernelRotationX = Quaternion.Euler(kernelVectorX);
+        Quaternion kernelRotationZ = Quaternion.Euler(kernelVectorZ);
+        Quaternion kernelRotationY = Quaternion.Euler(kernelVectorY);
+        Quaternion minusBracketRotation = Quaternion.Euler(minusBracketVector); 
+        Quaternion minusBracketWRotation = Quaternion.Euler(minusBracketWVector);
+
+        // we always start the "opening" bracket rotation arond the y axis (could be any axis!)
+        Quaternion overallRotation = bracketRotation;
+       
+        // sequence is a list of characters that define the spinor
+        // < means open bracket
+        // x y z mean a kernel rotation for that axis
+        // > means closing bracket
+        // Example of valid formula:
+        // <x> simplest
+        // <xxz> a bit more complex
+        // <xx><yzzyx>  this is also ok! As long as  we start and end with < and > it is correct
+        for (int i = 1; i < sequence.Length; i++) {
+            int which = sequence[i];
+            if (which == BRAY) overallRotation *= bracketRotation;
+            else if (which == KETY) overallRotation  *= minusBracketRotation;
+            else if (which == KERNELX) overallRotation *= kernelRotationX;
+            else if (which == KERNELY) overallRotation *= kernelRotationY;
+            else if (which == KERNELZ) overallRotation *= kernelRotationZ;
+        }
+        //this rotates the shell - and all points in space attached to it
+        shell.rotation = overallRotation; 
+        
     }
     public void checkVisibility() {
 
@@ -298,6 +423,20 @@ public class SpinLabScript : MonoBehaviour
           
             yield return null;
         }
+        particles = new Particles();
+        curparticle = particles.AllParticles[0];
+        try {
+            Dropdown d = GameObject.Find("ParticleDropdown").GetComponent<Dropdown>();
+            List<String> options = new List<String>();
+            foreach (Particle p in particles.AllParticles) {
+                options.Add(p.Name);
+            }
+            d.AddOptions(options);            
+            d.value = 0;
+        }
+        catch (Exception e) {
+            p("Could not get ParticleDropdown: " + e);
+        }
         markerScript.pointColor = new Color(1.0f, 0, 0, 1.0f);
         //   yield return new WaitUntil(() => GameObject.FindObjectOfType<GameManager>()!=null);
         _manager = GameObject.FindObjectOfType<GameManager>();
@@ -321,8 +460,6 @@ public class SpinLabScript : MonoBehaviour
         }
         );
 
-     
-
         modeBracket = true;
         spherePosition = sphere.transform.position;
         otherSpherePosition = otherSphere.transform.position;
@@ -336,6 +473,7 @@ public class SpinLabScript : MonoBehaviour
                 flip = -1;
                 p("Second side is flipped");
             }
+            else p("Second side is NOT flipped");
         }
 
 
@@ -358,6 +496,9 @@ public class SpinLabScript : MonoBehaviour
         gradient.SetKeys(colorKey, alphaKey);
         updateUiFromManagerValues();
         checkVisibility();
+
+
+        shellCache.Clear();
         //p("awake: setting speed to " + speed + " and angle to " + nrAxis + ", axis is " + nrAxis+", formula "+formula+ "< _manager.particleInfluence="+ _manager.particleInfluence);
 
 
@@ -381,6 +522,15 @@ public class SpinLabScript : MonoBehaviour
         else {
             resetCam();
 
+        }
+        if (spherePosition.x > 0) {
+            direction = -1;
+            leftSide = false;
+            if (_manager.flipSecond) {
+                flip = -1;
+                p("Second side is flipped");
+            }
+            else p("Second side is NOT flipped");
         }
         this.parseFormula(formula);
         InputField fformula = GameObject.FindGameObjectWithTag("FormulaField").GetComponent<InputField>();
@@ -420,7 +570,7 @@ public class SpinLabScript : MonoBehaviour
         at.text = "Grid size " + _manager.gridSize;
 
         try {
-            Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+            Dropdown preselect = GameObject.Find("CustomDropdown").GetComponent<Dropdown>();
             preselect.value = (_manager.preselect);
         }
         catch (Exception e) {
@@ -492,10 +642,14 @@ public class SpinLabScript : MonoBehaviour
     private bool parseFormula(string formula) {
         int bras = 0;
         int kets = 0;
+        int brasx = 0;
+        int ketsx = 0;
+        int brasw = 0;
+        int ketsw = 0;
         modeBracket = true;
         p("parseFormula: formula is " + formula);
         if (formula == null || formula.Length < 1) {
-            //      p("Formula " + formula + " is too short, using default");
+                p("Formula " + formula + " is too short, using default");
             return parseFormula(DEFAULT_FORMULA);
         }
       
@@ -503,26 +657,47 @@ public class SpinLabScript : MonoBehaviour
         sequence = new int[chars.Length];
         p("Got formula chars length " + sequence.Length);
         if (chars.Length == 0 ) {
-            //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
+           p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
             
             return parseFormula(DEFAULT_FORMULA);
         }
-        if (chars.Length<1 || (chars[0] != '<' && chars[chars.Length - 1] != '>')) {
-            //   p("Braket formula " + formula + " must start with bra and end with ket: " + formula + ", using default");
+        if (chars.Length<1) { 
             modeBracket = false;
         }
+        bool hasbrket = false;
         for (int i = 0; i < chars.Length; i++) {
             char c = chars[i];
             int which = -1;
             if (c == '<') {
-                which = BRA;
+                which = BRAY;
                 bras++;
+                hasbrket = true;
             }
             else if (c == '>') {
-                which = KET;
+                which = KETY;
                 kets++;
+                hasbrket = true;
             }
-            else if (c == 'x' || c == 'X') {
+            else if (c == '{') {
+                which = BRAZ;
+                brasw++;
+            }
+            else if (c == '}') {
+                which = KETZ;
+                ketsw++;
+                hasbrket = true;
+            }
+            else if (c == '[') {
+                which = BRAX;
+                brasx++;
+                hasbrket = true;
+            }
+            else if (c == ']') {
+                which = KETX;
+                ketsx++;
+                hasbrket = true;
+            }
+            else if (c == 'x' || c == 'X' || c == 's' || c == 'S') {
                 which = KERNELX;
             }
             else if (c == 'y' || c == 'Y') {
@@ -539,6 +714,16 @@ public class SpinLabScript : MonoBehaviour
             //      p("Unequal number of bras " + bras + " and kets " + kets+": "+formula);
             return parseFormula(DEFAULT_FORMULA);
         }
+        if (brasw != ketsw) {
+            //      p("Unequal number of bras " + bras + " and kets " + kets+": "+formula);
+            return parseFormula(DEFAULT_FORMULA);
+        }
+        if (brasx != ketsx) {
+            //      p("Unequal number of bras " + bras + " and kets " + kets+": "+formula);
+            return parseFormula(DEFAULT_FORMULA);
+        }
+        if (hasbrket == false) modeBracket = false;
+        
         p("parseFormula: formula " + formula + " looks ok, sequence is "+sequence.ToString());
         for (int i = 0; i < sequence.Length; i++) {
             //p("Operation "+i+": "+sequence[i]);
@@ -739,10 +924,14 @@ public class SpinLabScript : MonoBehaviour
 
         p("Grid points created, gridxleft="+gridxleft);
     }
+
     private void addPath(GameObject gpoint, float trans) {
+        addPath(gpoint, trans, 100);
+    }
+        private void addPath(GameObject gpoint, float trans, int count) {
         MarkerPath path = gpoint.AddComponent<MarkerPath>();
-        path.frameDelta = Math.Max(1, (int)(500.0f/_manager.speed/_manager.kernelAngle)) ;
-        path.markerCount = 100;
+        path.frameDelta = Math.Max(1, (int)(2000.0f/_manager.speed/_manager.kernelAngle)) ;
+        path.markerCount = count;
         
         path.arrowPrefab = markerScript.arrowPrefab;
         path.marker = this.markerScript.marker;
@@ -768,11 +957,15 @@ public class SpinLabScript : MonoBehaviour
         Vector3 vec = gpoint.transform.position;
         origpoints[i, j, k] = new Vector3(vec.x, vec.y, vec.z);
         bool vis = this.leftSide && _manager.showPoints;
+
         if (vis) {
 
             //only show every 4th
             int mod = 4;
             vis = i % mod == 0 && j % mod == 0 && k % mod == 0;
+            if (_manager.isBelt()) {
+                vis = i == this.gridxleft || j == this.nrGridPointsPerAxis[2] / 2 || k == this.nrGridPointsPerAxis[3] / 2;
+            }
             if (vis) {
                 int dGrid = _manager.gridSize * 2;
                 float red = Mathf.Min(1.0f, i / dGrid );
@@ -782,11 +975,13 @@ public class SpinLabScript : MonoBehaviour
                 c = new Color(red, green, blue, 0.5f);
                 gpoint.transform.localScale *= 4;
                 gpoint.GetComponent<Renderer>().material.SetColor("_Color", c);
+                
                 mod = 8;
                 if (i % mod == 0 && j % mod == 0 && k % mod == 0) {
-                    float dr = Math.Min(1, Math.Max(0.2f, 1.0f - Math.Abs((vec.magnitude - smallRadius) / bigRadius)));                  
+                    float dr = Math.Min(1, Math.Max(0.2f, 1.0f - Math.Abs((vec.magnitude - smallRadius) / bigRadius)));
                     addPath(gpoint, dr);
                 }
+                
             }
         }
         gpoint.GetComponent<Renderer>().enabled = vis;
@@ -799,7 +994,7 @@ public class SpinLabScript : MonoBehaviour
         shellMap.TryGetValue(r, out shell);
         if (shell == null) {
             GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
-            shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence,_manager.wave);
+            shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence,_manager.dropoff);
 
             shellMap.Add(r, shell);
         }
@@ -811,30 +1006,68 @@ public class SpinLabScript : MonoBehaviour
 
     
     private void createSphericalPoints(bool addTrace) {
-        p("createPoints for direction " + direction);
-
+        p("createSphericalPoints for direction " + direction+" belt. "+_manager.isBelt());
+        float curDistBetweenPoint = distBetweenPoint / 2.0f;
         nrpointsPerRing = (int)(360.0f / dalpha) + 1;
         points = new GameObject[_manager.nrAxis, rings, nrpointsPerRing];
         Vector3 pointcoord = spherePosition;
         centerpoint = Instantiate(pointPrefab, pointcoord, Quaternion.identity);
         centerpoint.GetComponent<Renderer>().material.SetColor("_Color", Color.gray);
+        int nrrings = (int)((bigRadius - smallRadius) / curDistBetweenPoint);
+        int dring = nrrings / 4;
 
-        int mod = 2;
         int whicha = 0;
-        for (float alpha = 0; alpha < 360; alpha += 4*dalpha) {
+        float da = 45;
+        float db = 45;
+       
+        float astart = 0;
+        float bstart = 0;
+        float danglea = 45;
+        float dangleb = 45;
+        int minrings = nrrings/2;
+        if (_manager.kernelAngle > 90) {
+            da = 90;
+            db = 45;
+            danglea = 90;
+            dangleb = 90;
+            minrings = nrrings * 4 / 5;
+
+        }
+        else if (_manager.kernelAngle > 45) {
+            da = 45;
+            db = 45;
+            danglea = 90;
+            dangleb = 90;
+            minrings = nrrings * 3/4;
+        }
+        if(_manager.isBelt()) {
+            da = 90;
+            db = 180;
+            curDistBetweenPoint = 0.1f;
+            astart = 90;
+            bstart = 90;
+            minrings = nrrings * 3/4;
+        }
+        p("da: " + da + ", db: " + db+", belt: "+_manager.isBelt());
+
+      
+        for (float alpha = astart; alpha < 360; alpha += da) {
           
             int whichb = 0;
-            for (float beta = 0; beta < 360; beta += 4 * dalpha) {
+            for (float beta = bstart; beta < 360; beta += db ) {
                   
                 int ring = 0;
 
                 Quaternion orient = Quaternion.Euler(alpha, beta, 0);
-                if (whicha % mod == 0 && whichb % mod == 0) {
+
+                bool showArrow = beta % dangleb == 0 && alpha % danglea == 0;
+                if (showArrow) {
                     GameObject arrow = Instantiate(arrowPrefab, spherePosition, orient);
                     arrow.transform.localScale = new Vector3(0.2f, 0.2f, 1.0f);
                 }
+                
                
-                for (float r = smallRadius; r < bigRadius; r += distBetweenPoint) {
+                for (float r = smallRadius; r < bigRadius; r += curDistBetweenPoint) {
                     ring++;
                     float dr = Math.Max(0.2f, 1.0f-Math.Abs((r - smallRadius) / bigRadius));
                     Vector3 vr = new Vector3(0, 0, r);
@@ -843,8 +1076,7 @@ public class SpinLabScript : MonoBehaviour
                         pointcoord = spherePosition + orient * vr;
                      
                         GameObject point = Instantiate(pointPrefab, pointcoord, Quaternion.identity);
-                        point.GetComponent<Renderer>().material.SetColor("_Color", c);
-                     
+                        point.GetComponent<Renderer>().material.SetColor("_Color", c);                     
                         point.GetComponent<Renderer>().enabled = true;
 
                         float red = Mathf.Min(1.0f, dr);
@@ -854,19 +1086,36 @@ public class SpinLabScript : MonoBehaviour
                         c = new Color(red, green, blue, 0.5f);
                         if (addTrace) {
                             point.transform.localScale *= 4;
-                            point.GetComponent<Renderer>().material.SetColor("_Color", c);
+                        if (_manager.isBelt()) {
+                            Vector3 s = new Vector3(curDistBetweenPoint * 1.0f,
+                                curDistBetweenPoint * 1.0f, curDistBetweenPoint * 5f);
+                            point.transform.localScale = s;
+                           
+                        }
 
-                            if ((ring % 4 == 0 || r+ distBetweenPoint >= bigRadius)  && whicha % mod== 0 && whichb % mod == 0) {
-                                
-                                addPath(point, dr);
+                        point.GetComponent<Renderer>().material.SetColor("_Color", c);
+                        if (_manager.isBelt()) {
+                            if ((ring % dring ==0  && ring > minrings || r + curDistBetweenPoint >= bigRadius)
+                                && showArrow) {
+                                addPath(point, dr, 150);
                             }
                         }
-                        // points[ax, ring, which] = point;
-                        Shell shell = shellMap[r];
-                        if (shell != null) {
-                            point.transform.parent = shell.shell.transform;
+                        else if ((ring % dring == 0 && ring>minrings || r+ curDistBetweenPoint >= bigRadius) 
+                                && showArrow) {
+                                    addPath(point, dr);
+                            }
                         }
-                        else p("Could not find shell for radius " + r);
+                    // points[ax, ring, which] = point;
+                    Shell shell;
+                    shellMap.TryGetValue(r, out shell);
+                    if (shell == null) {
+                        GameObject s = Instantiate(spherePrefab, spherePosition, Quaternion.identity);
+                        shell = new Shell(r, smallRadius, bigRadius, s, _manager.particleInfluence, _manager.dropoff);
+
+                        shellMap.Add(r, shell);
+                    }
+                    
+                            point.transform.parent = shell.shell.transform;
                         
                     }
                 whichb++;
@@ -1261,6 +1510,9 @@ public class SpinLabScript : MonoBehaviour
         _manager.camPosition = cam.transform.position;
         _manager.camRotation = cam.transform.rotation;
         p("Setting manager.cameraTransform to " + cam.transform);
+        Slider phaseSlider = GameObject.Find("PhaseSlider").GetComponent<Slider>();
+        _manager.curUserPhase = phaseSlider.value;
+
         Slider aslider = GameObject.FindGameObjectWithTag("AngleSlider").GetComponent<Slider>();
         Slider sslider = GameObject.FindGameObjectWithTag("SpeedSlider").GetComponent<Slider>();
         Slider xslider = GameObject.FindGameObjectWithTag("AxisSlider").GetComponent<Slider>();
@@ -1275,7 +1527,8 @@ public class SpinLabScript : MonoBehaviour
         Toggle tgroup = GameObject.FindGameObjectWithTag("ToggleGroup").GetComponent<Toggle>();
         Toggle tflip = GameObject.FindGameObjectWithTag("ToggleFlip").GetComponent<Toggle>();
 
-        Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+        Dropdown preselect = GameObject.Find("CustomDropdown").GetComponent<Dropdown>();
+        Dropdown particledrop = GameObject.Find("ParticleDropdown").GetComponent<Dropdown>();
         Dropdown colordrop = GameObject.Find("ColorDrop").GetComponent<Dropdown>();
 
         Toggle tcolor = GameObject.Find("ColorLines").GetComponent<Toggle>();
@@ -1503,6 +1756,16 @@ public class SpinLabScript : MonoBehaviour
 
         at.text = "Axis " + (int)aslider.value;
     }
+    public void setUserPhase() {
+      
+        Slider aslider = GameObject.Find("PhaseSlider").GetComponent<Slider>();
+        _manager.curUserPhase = aslider.value;
+        if (_manager.curUserPhase < 0) _manager.userPhase = false;
+        else _manager.userPhase = true;
+
+        p("_manager.curUserPhase is " + _manager.curUserPhase + ", _manager.userPhase=" + _manager.userPhase);
+
+    }
 
     public void setSpeedText() {
         Text at = GameObject.Find("SpeedLabel").GetComponent<Text>();
@@ -1562,17 +1825,32 @@ public class SpinLabScript : MonoBehaviour
         updateUiFromManagerValues();
         this.refresh("");
     }
+    public void particleChange(int change) {
+        p("particleChange: change=" + change);
+        Dropdown d = GameObject.Find("ParticleDropdown").GetComponent<Dropdown>();
+        if (d == null) {
+            p("Could not find dropdown ParticleDropdown");
+            return;
+        }
+        int which = d.value;
+        curparticle= particles.AllParticles[which];
+        _manager.formula = curparticle.Formula;
+        p("===================== particleChange = " + curparticle.Name+", "+ curparticle.Formula);
+        updateUiFromManagerValues();
+        this.refresh("");
+    }
     public void selectionChanged(int change) {
         //p("selectionChanged: change=" + change);
-        Dropdown preselect = GameObject.Find("Dropdown").GetComponent<Dropdown>();
+        Dropdown preselect = GameObject.Find("CustomDropdown").GetComponent<Dropdown>();
         if (preselect == null) {
             p("Could not find dropdown");
             return;
         }
 
         int which = preselect.value;
-        //p("selectionChanged: " + which);
+        p("Preselect selectionChanged: " + which);
         _manager.preselect = which;
+        _manager.dropoff = GameManager.DROPOFF_RSQUARED;
         if (which == 0) _manager.setSimpleTwist();
         else if (which == 1) _manager.setSimpleCompression();
         else if (which == 2) _manager.setSimpleSpin();
@@ -1580,8 +1858,11 @@ public class SpinLabScript : MonoBehaviour
         else if (which == 5) _manager.setDoubleTwist();
         else if (which == 6) _manager.setComplexSpin(true);
         else if (which == 7) _manager.setComplexSpinMax(false);
-        else if (which == 8) _manager.setComplexSpinMax(true);
-      
+        //else if (which == 8) _manager.setComplexSpinMax(true);
+        else if (which == GameManager.BELT) {
+            _manager.setBelt();
+        }
+
         p("Manager preselect is now: " + which);
         updateUiFromManagerValues();
         this.refresh("");

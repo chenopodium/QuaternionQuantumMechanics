@@ -126,10 +126,13 @@ public class MarkerPath : MonoBehaviour
                 Vector3 after = m.transform.position;
                 lr.SetPosition(0,before );
                 lr.SetPosition(1,after);
-                Quaternion targetRotation = Quaternion.LookRotation(after - before);
+                if (!after.Equals(before)) {
 
-                arrow.transform.rotation = targetRotation;
-              //   Quaternion.Lerp(arrow.transform.rotation, targetRotation, 10f * Time.deltaTime);
+                    Quaternion targetRotation = Quaternion.LookRotation(after - before);
+
+                    arrow.transform.rotation = targetRotation;
+                    //   Quaternion.Lerp(arrow.transform.rotation, targetRotation, 10f * Time.deltaTime);
+                }
                 arrow.transform.position = before;
 
                // arrow.transform.position = Vector3.Lerp(m.transform.position, after, Time.deltaTime * 1.0f);

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,7 +12,17 @@ public class GameManager : MonoBehaviour
 
     private static bool _created = false;
 
+    public static int BELT = 8;
+
+    public static int DROPOFF_FIXED = 1;
+    public static int DROPOFF_RSQUARED = 0; 
+    public static int DROPOFF_WAVE = 2;
+
     private List<GameListener> listeners;
+
+    [SerializeField]
+    public int dropoff = DROPOFF_RSQUARED;
+
 
     [SerializeField]
     public bool magnet = true;
@@ -57,6 +68,12 @@ public class GameManager : MonoBehaviour
 
     [SerializeField]
     public bool showSphere;
+
+    [SerializeField]
+    public bool userPhase;
+
+    [SerializeField]
+    public float curUserPhase;
 
     [SerializeField]
     public bool showLines;
@@ -136,20 +153,23 @@ public class GameManager : MonoBehaviour
     public void Reset() {
         kernelAngle = 10;
         colorBy = 0;
+        userPhase = true;
+        this.dropoff = DROPOFF_RSQUARED;
         wave = false;
         magnet = true;
         rotate = true;
-        showSphere = false;
-        showLines = true;
+        preselect = BELT;
+        showSphere = true;
+        showLines = false;
         showPoints = false;
         flipSecond = false;
         gridSize = 4;
         colorLines = true;
         spinMode = 1;
-        particleInfluence = 0.5f;
+        particleInfluence = 0.3f;
         useCompression = false;
         showSecondGroup = false;
-        speed = 3.0f;
+        speed = 2.0f;
         compressionSpeed = 2.0f;
         compressionMagnitude = 0.5f;
         nrAxis = 1;
@@ -204,6 +224,7 @@ public class GameManager : MonoBehaviour
         nrAxis = 1;
         showLines = true;
         colorLines = true;
+        this.magnet = false;
         flipSecond = false;
         particleInfluence = 0.5f;
         p("Set setDoubleTwist");
@@ -244,6 +265,29 @@ public class GameManager : MonoBehaviour
         p("setComplexSpin");
    
     }
+    public void setBelt() {
+        Reset();
+        useCompression = false;
+        speed = 2;
+        gridSize = 4;
+        spinMode = 1;
+        preselect = BELT;
+        dropoff = DROPOFF_FIXED;
+        showSecondGroup = false;
+        kernelAngle = 180;
+        formula = "<x>";
+        nrAxis = 1;
+        showLines = false;
+        colorLines = true;
+        dropoff = DROPOFF_FIXED;
+        flipSecond = false;
+        particleInfluence = 0.3f;
+        p("setBelt, preselect is " + preselect);
+
+    }
+    public bool isBelt() {
+        return preselect == BELT;
+    }
     public void setComplexSpinMax(bool second) {
         Reset();
         useCompression = false;
@@ -251,7 +295,7 @@ public class GameManager : MonoBehaviour
         gridSize = 6;
         spinMode = 1;
         preselect = 7;
-        if (second) preselect = 8;
+     //   if (second) preselect = 8;
         showSecondGroup = second;
         kernelAngle = 180;
         formula = "<x>";
