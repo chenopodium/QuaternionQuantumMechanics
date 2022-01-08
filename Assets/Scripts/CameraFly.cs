@@ -43,7 +43,7 @@ public class CameraFly : MonoBehaviour
 
 
         // move canvas 
-        canvas = GameObject.FindGameObjectWithTag("Canvas").GetComponent<Canvas>();
+        if (GameObject.FindGameObjectWithTag("Canvas") != null) canvas = GameObject.FindGameObjectWithTag("Canvas").GetComponent<Canvas>();
         
         cam = GameObject.FindObjectOfType<Camera>();
         float screenx = Screen.width/2;
@@ -51,7 +51,7 @@ public class CameraFly : MonoBehaviour
         
         Vector3 point = cam.ScreenToWorldPoint(new Vector3(screenx, screeny, cam.nearClipPlane));
    //     p("Moving canvas to " + point);
-        canvas.transform.position = point;
+        if (canvas != null) canvas.transform.position = point;
 
 
     }
@@ -199,7 +199,7 @@ public class CameraFly : MonoBehaviour
             transform.rotation = startingTransform.rotation;
         }
 
-        canvas.gameObject.SetActive( !modeFly);
+        if (canvas != null) canvas.gameObject.SetActive( !modeFly);
     }
     private void p(string s) {
         Debug.Log("CameraFly: " + s);

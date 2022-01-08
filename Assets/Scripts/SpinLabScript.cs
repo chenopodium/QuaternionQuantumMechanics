@@ -97,7 +97,7 @@ public class SpinLabScript : MonoBehaviour
     // ===================== particles
     private Particles particles;
     private Particle curparticle ;
-
+     
     // =================== SHELL CACHE ===================
     private Dictionary<(float, float, int), Quaternion> shellCache = new Dictionary<(float, float, int), Quaternion>();
     private Dictionary<(Vector3, Vector3, int), Vector3> midCache = new Dictionary<(Vector3, Vector3, int), Vector3>();
@@ -1744,14 +1744,17 @@ public class SpinLabScript : MonoBehaviour
     }
     public void setAngleText() {
         Text at = GameObject.Find("AngleLabel").GetComponent<Text>();
+        if (at == null) return;
         Slider aslider = GameObject.FindGameObjectWithTag("AngleSlider").GetComponent<Slider>();
-
-        at.text = "Kernel angle " + (int)aslider.value;
+        if (aslider == null) return;
+        if (at !=null) at.text = "Kernel angle " + (int)aslider.value;
         restartMarkers();
+        if (aslider != null && _manager != null) _manager.kernelAngle = aslider.value;
     }
 
     public void setAxisText() {
         Text at = GameObject.Find("AxisLabel").GetComponent<Text>();
+        if (at == null) return;
         Slider aslider = GameObject.FindGameObjectWithTag("AxisSlider").GetComponent<Slider>();
 
         at.text = "Axis " + (int)aslider.value;
@@ -1759,12 +1762,13 @@ public class SpinLabScript : MonoBehaviour
     public void setUserPhase() {
       
         Slider aslider = GameObject.Find("PhaseSlider").GetComponent<Slider>();
+        if (aslider == null) return;
         _manager.curUserPhase = aslider.value;
         if (_manager.curUserPhase < 0) _manager.userPhase = false;
         else _manager.userPhase = true;
 
         p("_manager.curUserPhase is " + _manager.curUserPhase + ", _manager.userPhase=" + _manager.userPhase);
-
+       // restartMarkers();s
     }
 
     public void setSpeedText() {
@@ -1809,7 +1813,7 @@ public class SpinLabScript : MonoBehaviour
             markerScript.restart();
 
         }
-        else if (this.leftSide) p("There is no marker script");
+      //  else if (this.leftSide) p("There is no marker script");
     }
     public void colorChange(int change) {
          p("colorChange: change=" + change);

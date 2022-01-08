@@ -1,4 +1,4 @@
-Shader "Custom/WorldCoord Diffuse" {
+Shader "Custom/Electron" {
     SubShader
     {
         Pass
@@ -10,10 +10,10 @@ Shader "Custom/WorldCoord Diffuse" {
             #include "UnityCG.cginc"
 
             struct v2f {
-        // we'll output world space normal as one of regular ("texcoord") interpolators
-        half3 worldNormal : TEXCOORD0;
-        float4 pos : SV_POSITION;
-    };
+                // we'll output world space normal as one of regular ("texcoord") interpolators
+                half3 worldNormal : TEXCOORD0;
+                float4 pos : SV_POSITION;
+            };
 
     // vertex shader: takes object space normal as input too
     v2f vert(float4 vertex : POSITION, float3 normal : NORMAL)

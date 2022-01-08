@@ -1083,6 +1083,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59e74bbcefccdce4bb7a7ae7cd35c5f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dropoff: 0
   magnet: 1
   wave: 0
   camPosition: {x: 0, y: 0, z: 0}
@@ -1099,6 +1100,7 @@ MonoBehaviour:
   rotate: 0
   showSphere: 0
   userPhase: 0
+  curUserPhase: 0
   showLines: 0
   showPoints: 0
   showSecondGroup: 0
@@ -2559,9 +2561,9 @@ RectTransform:
   m_Father: {fileID: 496108904}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -566.2824, y: -135.85999}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 0, y: 0.5}
+  m_AnchoredPosition: {x: -516.2824, y: -135.85999}
   m_SizeDelta: {x: 1313.3888, y: 765.9646}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &378491191
@@ -4877,7 +4879,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Spin Mode
+  m_Text: 'Twist vs Comp
 
 '
 --- !u!222 &686589751
@@ -7326,7 +7328,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1192626048
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8086,7 +8088,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Kernel Angle
+  m_Text: 'Kernel Angle ("Winding")
 
 '
 --- !u!222 &1307061388
@@ -12260,6 +12262,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59e74bbcefccdce4bb7a7ae7cd35c5f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dropoff: 0
   magnet: 1
   wave: 0
   camPosition: {x: 0, y: 0, z: 0}
@@ -12276,6 +12279,7 @@ MonoBehaviour:
   rotate: 0
   showSphere: 0
   userPhase: 0
+  curUserPhase: 0
   showLines: 0
   showPoints: 0
   showSecondGroup: 0
